@@ -20,6 +20,9 @@ function yearFromTitle(title) {
 }
 
 function scanPapers() {
+  if (!fs.existsSync(PAPERS_DIR)) {
+    fs.mkdirSync(PAPERS_DIR, { recursive: true });
+  }
   const subjects = fs.readdirSync(PAPERS_DIR, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)

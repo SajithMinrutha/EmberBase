@@ -21,6 +21,9 @@ function yearFromTitle(title) {
 }
 
 function scanTutes() {
+  if (!fs.existsSync(TUTES_DIR)) {
+    fs.mkdirSync(TUTES_DIR, { recursive: true });
+  }
   const subjects = fs
     .readdirSync(TUTES_DIR, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
