@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>EmberTrack</title>
+
+    <!-- Favicon for browser tab -->
+    <link rel="icon" type="image/svg+xml" href="public/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell min-h-screen">
+      <div class="flex min-h-screen">
+        <aside
+          class="w-20 sm:w-52 lg:w-64 sidebar-surface backdrop-blur-xl p-4 flex flex-col gap-6"
+        >
+          <div class="glass-card-strong rounded-2xl p-3 flex items-center gap-3">
+            <div
+              class="h-10 w-10 rounded-2xl bg-black/10 flex items-center justify-center text-slate-100 font-semibold"
+            >
+              E
+            </div>
+            <div class="hidden sm:block">
+              <p class="text-slate-100 font-semibold">EmberTrack</p>
+              <p class="text-muted text-xs">Offline Study Hub</p>
+            </div>
+          </div>
+          <nav class="flex flex-col gap-2 text-sm font-semibold">
+            <button class="nav-btn" data-view="dashboard">Dashboard</button>
+            <button class="nav-btn" data-view="marks">Marks</button>
+            <button class="nav-btn" data-view="todo">ToDo</button>
+            <button class="nav-btn" data-view="planner">Planner</button>
+            <button class="nav-btn" data-view="settings">Settings</button>
+          </nav>
+        </aside>
+
+        <main class="flex-1 px-4 sm:px-6 lg:px-10 py-6">
+          <header
+            class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-white/10 pb-4"
+          >
+            <div>
+              <h1 class="text-2xl sm:text-3xl font-semibold text-slate-100">
+                EmberTrack
+              </h1>
+              <p class="text-muted">
+                Offline study dashboard for marks, sessions, and tasks.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <a
+                class="btn-secondary rounded-full px-4 py-2 text-sm"
+                href="/"
+              >
+                Back to EmberBase
+              </a>
+              <div class="accent-chip rounded-full px-4 py-2 text-xs font-semibold">
+                <span id="todayLabel">Today</span>
+              </div>
+              <div
+                class="glass-card rounded-full px-4 py-2 text-sm text-slate-100"
+                id="profileLabel"
+              >
+                Student
+              </div>
+            </div>
+          </header>
+
+          <section id="view-dashboard" class="view mt-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="glass-card rounded-2xl p-4">
+                <p class="text-sm uppercase tracking-wide text-muted">
+                  Subjects
+                </p>
+                <div class="text-3xl font-semibold text-slate-100" id="statSubjects">
+                  0
+                </div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <p class="text-sm uppercase tracking-wide text-muted">
+                  Marks Logged
+                </p>
+                <div class="text-3xl font-semibold text-slate-100" id="statMarks">
+                  0
+                </div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <p class="text-sm uppercase tracking-wide text-muted">
+                  Open Tasks
+                </p>
+                <div class="text-3xl font-semibold text-slate-100" id="statTodos">
+                  0
+                </div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <p class="text-sm uppercase tracking-wide text-muted">
+                  Study Streak
+                </p>
+                <div class="text-3xl font-semibold text-slate-100" id="statStreak">
+                  0
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="glass-card rounded-2xl p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Recent Marks
+                </h2>
+                <div id="recentMarks" class="space-y-3 text-sm text-slate-100">
+                  <p class="text-muted">Add marks to see progress.</p>
+                </div>
+              </div>
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Focus Tasks
+                </h2>
+                <div id="focusTodos" class="space-y-3 text-sm text-slate-100">
+                  <p class="text-muted">Add tasks to build focus.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6">
+              <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                Weekly Study Summary
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="rounded-2xl bg-white/5 p-4">
+                  <p class="text-muted">This week total</p>
+                  <p class="text-xl text-slate-100 font-semibold" id="weekTotal">
+                    0 min
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-white/5 p-4">
+                  <p class="text-muted">Average session</p>
+                  <p class="text-xl text-slate-100 font-semibold" id="weekAverage">
+                    0 min
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-white/5 p-4">
+                  <p class="text-muted">Most studied</p>
+                  <p class="text-xl text-slate-100 font-semibold" id="weekSubject">
+                    -
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Daily Focus Target
+                </h2>
+                <div class="space-y-2 text-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-muted">Target</span>
+                    <span class="text-slate-100 font-semibold" id="dailyTarget">
+                      0 min
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-muted">Logged today</span>
+                    <span class="text-slate-100 font-semibold" id="dailyLogged">
+                      0 min
+                    </span>
+                  </div>
+                  <div class="mt-3 h-2 rounded-full bg-white/10">
+                    <div
+                      class="h-2 rounded-full bar-accent"
+                      id="dailyProgress"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="glass-card rounded-2xl p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Subject Averages
+                </h2>
+                <div id="subjectAverages" class="space-y-3 text-sm"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Focus Timer
+                </h2>
+                <div class="flex items-end justify-between mb-4">
+                  <div>
+                    <p class="text-muted text-sm">Current session</p>
+                    <p class="text-3xl font-semibold text-slate-100" id="timerDisplay">
+                      25:00
+                    </p>
+                  </div>
+                  <span class="text-xs text-muted" id="timerStatus">Ready</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button class="btn-primary rounded-lg px-3 py-2 text-sm" id="timerStart">
+                    Start
+                  </button>
+                  <button class="btn-secondary rounded-lg px-3 py-2 text-sm" id="timerPause">
+                    Pause
+                  </button>
+                  <button class="btn-ghost rounded-lg px-3 py-2 text-sm" id="timerReset">
+                    Reset
+                  </button>
+                </div>
+              </div>
+              <div class="glass-card rounded-2xl p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Quick Notes
+                </h2>
+                <textarea
+                  id="quickNotes"
+                  class="w-full h-32 rounded-xl bg-white/5 p-3 text-sm text-slate-100"
+                  placeholder="Write quick reminders, tricky problems, or next steps..."
+                ></textarea>
+                <p class="text-xs text-muted mt-2" id="notesStatus"></p>
+              </div>
+            </div>
+          </section>
+
+          <section id="view-marks" class="view mt-6 space-y-6 hidden">
+            <div class="glass-card rounded-2xl p-6">
+              <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                Log a Mark
+              </h2>
+              <form id="markForm" class="grid grid-cols-1 lg:grid-cols-5 gap-3">
+                <div>
+                  <label class="text-sm text-muted">Subject</label>
+                  <select
+                    id="markSubject"
+                    class="w-full p-2 rounded bg-white/5 text-slate-100"
+                  ></select>
+                </div>
+                <div>
+                  <label class="text-sm text-muted">MCQ</label>
+                  <input
+                    id="markMcq"
+                    type="number"
+                    min="0"
+                    max="50"
+                    class="w-full p-2 rounded bg-white/5 text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label class="text-sm text-muted">Essay</label>
+                  <input
+                    id="markEssay"
+                    type="number"
+                    min="0"
+                    max="50"
+                    class="w-full p-2 rounded bg-white/5 text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label class="text-sm text-muted">Note</label>
+                  <input
+                    id="markNote"
+                    type="text"
+                    class="w-full p-2 rounded bg-white/5 text-slate-100"
+                  />
+                </div>
+                <div class="flex items-end gap-2">
+                  <button
+                    class="btn-primary rounded-lg px-4 py-2 text-sm font-semibold w-full"
+                    type="submit"
+                    id="markSubmit"
+                  >
+                    Add
+                  </button>
+                  <button
+                    class="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold w-full"
+                    type="button"
+                    id="markCancel"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+              <p class="text-xs text-muted mt-3" id="markHint">
+                Add subjects in Settings before logging marks.
+              </p>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6">
+              <div
+                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4"
+              >
+                <h2 class="text-lg font-semibold text-slate-100">
+                  Marks Visualizer
+                </h2>
+                <p class="text-xs text-muted">Recent totals per subject</p>
+              </div>
+              <div id="marksVisualizer" class="chart-grid"></div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6">
+              <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+                <h2 class="text-lg font-semibold text-slate-100">Mark Log</h2>
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="text-muted">Filter</span>
+                  <select
+                    id="markFilter"
+                    class="p-2 rounded bg-white/5 text-slate-100"
+                  >
+                    <option value="all">All subjects</option>
+                  </select>
+                </div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm text-left">
+                  <thead class="text-muted">
+                    <tr>
+                      <th class="p-2">Subject</th>
+                      <th class="p-2">MCQ</th>
+                      <th class="p-2">Essay</th>
+                      <th class="p-2">Total</th>
+                      <th class="p-2">Note</th>
+                      <th class="p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="marksTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section id="view-todo" class="view mt-6 space-y-6 hidden">
+            <div class="glass-card rounded-2xl p-6">
+              <h2 class="text-lg font-semibold text-slate-100 mb-4">Tasks</h2>
+              <form id="todoForm" class="flex flex-col lg:flex-row gap-3">
+                <input
+                  id="todoTitle"
+                  type="text"
+                  placeholder="Add a task"
+                  class="flex-1 p-2 rounded bg-white/5 text-slate-100"
+                />
+                <select
+                  id="todoPriority"
+                  class="p-2 rounded bg-white/5 text-slate-100"
+                >
+                  <option>High</option>
+                  <option selected>Medium</option>
+                  <option>Low</option>
+                </select>
+                <button class="btn-primary rounded-lg px-4 py-2" type="submit">
+                  Add Task
+                </button>
+              </form>
+              <div class="flex flex-wrap gap-2 mt-4 items-center">
+                <button class="filter-btn" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="open">Open</button>
+                <button class="filter-btn" data-filter="done">Done</button>
+                <button class="btn-ghost rounded-full px-3 py-1 text-xs" id="clearCompleted">
+                  Clear completed
+                </button>
+              </div>
+            </div>
+            <div class="glass-card rounded-2xl p-6">
+              <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mb-4">
+                <h2 class="text-lg font-semibold text-slate-100">Task List</h2>
+                <p class="text-xs text-muted" id="todoStats">0% complete</p>
+              </div>
+              <div id="todoList" class="space-y-3 text-sm text-slate-100"></div>
+            </div>
+          </section>
+
+          <section id="view-planner" class="view mt-6 space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Log Study Session
+                </h2>
+                <form id="sessionForm" class="space-y-3">
+                  <div>
+                    <label class="text-sm text-muted">Subject</label>
+                    <select
+                      id="sessionSubject"
+                      class="w-full p-2 rounded bg-white/5 text-slate-100"
+                    ></select>
+                  </div>
+                  <div>
+                    <label class="text-sm text-muted">Target minutes</label>
+                    <input
+                      id="sessionTarget"
+                      type="number"
+                      min="0"
+                      class="w-full p-2 rounded bg-white/5 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-muted">Actual minutes</label>
+                    <input
+                      id="sessionActual"
+                      type="number"
+                      min="0"
+                      class="w-full p-2 rounded bg-white/5 text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-muted">Date</label>
+                    <input
+                      id="sessionDate"
+                      type="date"
+                      class="w-full p-2 rounded bg-white/5 text-slate-100"
+                    />
+                  </div>
+                  <button class="btn-primary rounded-lg px-4 py-2 w-full">
+                    Add Session
+                  </button>
+                </form>
+              </div>
+              <div class="glass-card rounded-2xl p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Study Sessions
+                </h2>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full text-sm text-left">
+                    <thead class="text-muted">
+                      <tr>
+                        <th class="p-2">Date</th>
+                        <th class="p-2">Subject</th>
+                        <th class="p-2">Target</th>
+                        <th class="p-2">Actual</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sessionTable"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="glass-card rounded-2xl p-6">
+              <div
+                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4"
+              >
+                <h2 class="text-lg font-semibold text-slate-100">Study Trend</h2>
+                <div class="chart-legend">
+                  <span class="legend-item">
+                    <span class="legend-dot legend-dot--warm"></span>
+                    Actual
+                  </span>
+                  <span class="legend-item">
+                    <span class="legend-dot legend-dot--cool"></span>
+                    Target
+                  </span>
+                </div>
+              </div>
+              <div id="plannerChart" class="chart-lg"></div>
+              <div id="plannerAxis" class="chart-axis"></div>
+            </div>
+            <div class="glass-card rounded-2xl p-6">
+              <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                Subject Progress
+              </h2>
+              <div id="subjectProgress" class="space-y-3 text-sm"></div>
+            </div>
+          </section>
+
+          <section id="view-settings" class="view mt-6 space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">Profile</h2>
+                <label class="text-sm text-muted">Name</label>
+                <input
+                  id="profileName"
+                  type="text"
+                  class="w-full p-2 rounded bg-white/5 text-slate-100 mb-3"
+                />
+                <label class="text-sm text-muted">Birthday</label>
+                <input
+                  id="profileBirthday"
+                  type="date"
+                  class="w-full p-2 rounded bg-white/5 text-slate-100 mb-3"
+                />
+                <label class="text-sm text-muted">Daily focus target (minutes)</label>
+                <input
+                  id="profileTarget"
+                  type="number"
+                  min="0"
+                  class="w-full p-2 rounded bg-white/5 text-slate-100 mb-3"
+                />
+                <button class="btn-primary rounded-lg px-4 py-2" id="saveProfile">
+                  Save Profile
+                </button>
+                <p class="text-xs text-muted mt-2" id="profileMessage"></p>
+              </div>
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">Subjects</h2>
+                <div class="flex gap-2 mb-3">
+                  <input
+                    id="newSubject"
+                    type="text"
+                    placeholder="Add subject"
+                    class="flex-1 p-2 rounded bg-white/5 text-slate-100"
+                  />
+                  <button class="btn-primary rounded-lg px-4 py-2" id="addSubject">
+                    Add
+                  </button>
+                </div>
+                <div id="subjectList" class="space-y-2 text-sm"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Goals Tracker
+                </h2>
+                <div class="flex gap-2 mb-3">
+                  <input
+                    id="newGoal"
+                    type="text"
+                    placeholder="Add a goal"
+                    class="flex-1 p-2 rounded bg-white/5 text-slate-100"
+                  />
+                  <button class="btn-primary rounded-lg px-4 py-2" id="addGoal">
+                    Add
+                  </button>
+                </div>
+                <div id="goalList" class="space-y-2 text-sm"></div>
+              </div>
+              <div class="glass-card rounded-2xl p-6">
+                <h2 class="text-lg font-semibold text-slate-100 mb-4">
+                  Data Controls
+                </h2>
+                <div class="flex flex-wrap gap-3">
+                  <button class="btn-secondary rounded-lg px-4 py-2" id="exportData">
+                    Export JSON
+                  </button>
+                  <button class="btn-secondary rounded-lg px-4 py-2" id="exportCsv">
+                    Export Marks CSV
+                  </button>
+                  <label class="btn-secondary rounded-lg px-4 py-2 cursor-pointer">
+                    Import Data
+                    <input type="file" id="importFile" class="hidden" />
+                  </label>
+                  <button class="btn-ghost rounded-lg px-4 py-2" id="resetData">
+                    Reset Everything
+                  </button>
+                </div>
+                <p class="text-xs text-muted mt-2" id="dataMessage"></p>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

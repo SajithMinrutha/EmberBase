@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EmberStudy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <a class="hub-link" href="/">← Back to EmberBase</a>
+      </div>
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">EmberStudy</p>
+          <h1>Subject tutes in one place.</h1>
+          <p class="subtitle">
+            Store theory and revision tutes by subject. Drop PDFs into the
+            folders and the index updates automatically while the server runs.
+          </p>
+          <div class="chip-group">
+            <p class="chip-label">Subjects</p>
+            <div class="chip-row" id="subjectChips"></div>
+          </div>
+          <div class="chip-group">
+            <p class="chip-label">Types</p>
+            <div class="chip-row" id="typeChips"></div>
+          </div>
+        </div>
+        <div class="hero__panel">
+          <div class="panel__card">
+            <p class="panel__label">Quick search</p>
+            <input id="search" type="search" placeholder="Search by title or year" />
+            <div class="panel__meta">
+              <span id="count">0 tutes</span>
+              <span id="updated">Updated just now</span>
+            </div>
+          </div>
+          <div class="panel__note">
+            <h2>Folder layout</h2>
+            <p>
+              Add PDFs under <code>Tutes/Subject/Theory</code> or
+              <code>Tutes/Subject/Revision</code>.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="grid" id="grid"></section>
+        <section class="empty" id="empty" hidden>
+          <h2>No tutes found</h2>
+          <p>Try a different subject, type, or search term.</p>
+        </section>
+      </main>
+    </div>
+
+    <script src="tutes-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

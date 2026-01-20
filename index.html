@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EmberBase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="hub.css" />
+  </head>
+  <body>
+    <div class="hub">
+      <nav class="hub__nav">
+        <div class="brand">EmberBase</div>
+        <div class="nav__meta">Offline study suite</div>
+      </nav>
+
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">Offline Suite</p>
+          <h1>Three local study tools, one calm hub.</h1>
+          <p class="subtitle">
+            Jump into your offline grade tracker or browse the past-paper archive.
+            Everything runs on your machine with no logins.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="/embertrack/">Open EmberTrack</a>
+            <a class="btn btn--ghost" href="/embervault/">Open EmberVault</a>
+            <a class="btn btn--secondary" href="/emberstudy/">Open EmberStudy</a>
+          </div>
+        </div>
+        <div class="hero__panel">
+          <div class="panel panel--glow">
+            <p class="panel__label">Quick start</p>
+            <div class="panel__command">
+              <span>Run locally</span>
+              <code>npm start</code>
+            </div>
+            <p class="panel__note">
+              Uses a single server to host the hub and all apps.
+            </p>
+          </div>
+          <div class="panel">
+            <p class="panel__label">What is included</p>
+            <ul class="panel__list">
+              <li>EmberTrack dashboard</li>
+              <li>EmberVault archive</li>
+              <li>EmberStudy library</li>
+              <li>Shared theme + unified palette</li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+      <section class="cards">
+        <article class="app-card">
+          <div class="app-card__header">
+            <p class="app-card__eyebrow">Grades</p>
+            <h2>EmberTrack</h2>
+          </div>
+          <p>
+            Track marks, study sessions, tasks, and streaks in a focused workspace
+            that stays offline.
+          </p>
+          <ul>
+            <li>Marks + subject averages</li>
+            <li>Study planner with targets</li>
+            <li>Focus timer + quick notes</li>
+          </ul>
+          <a class="btn btn--secondary" href="/embertrack/">Launch EmberTrack</a>
+        </article>
+
+        <article class="app-card">
+          <div class="app-card__header">
+            <p class="app-card__eyebrow">Archive</p>
+            <h2>EmberVault</h2>
+          </div>
+          <p>
+            Browse and filter AL past papers by subject with fast search and
+            instant PDF access.
+          </p>
+          <ul>
+            <li>Subject filters + quick search</li>
+            <li>Local PDF viewer links</li>
+            <li>Auto index generation</li>
+          </ul>
+          <a class="btn btn--secondary" href="/embervault/">Launch EmberVault</a>
+        </article>
+
+        <article class="app-card">
+          <div class="app-card__header">
+            <p class="app-card__eyebrow">Tutes</p>
+            <h2>EmberStudy</h2>
+          </div>
+          <p>
+            Organize theory and revision tutes by subject with quick search and
+            downloadable PDFs.
+          </p>
+          <ul>
+            <li>Theory + revision filters</li>
+            <li>Subject-based folders</li>
+            <li>Auto index generation</li>
+          </ul>
+          <a class="btn btn--secondary" href="/emberstudy/">Launch EmberStudy</a>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span>Built for offline study sessions.</span>
+        <span>Tip: Add new papers, then run <code>node generate-papers.js</code>.</span>
+      </footer>
+    </div>
+  </body>
+</html>

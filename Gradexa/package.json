@@ -1,0 +1,14 @@
+{
+  "name": "embertrack",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build:css": "tailwindcss -i src/index.css -o styles.css --minify",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.13",
+    "tailwindcss": "^4.1.13"
+  }
+}

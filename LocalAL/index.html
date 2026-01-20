@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EmberVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <a class="hub-link" href="/">← Back to EmberBase</a>
+      </div>
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">Advanced Level</p>
+          <h1>EmberVault</h1>
+          <p class="subtitle">
+            Curated by subject, ready to view or download. Add new PDFs to the
+            folders and refresh the index.
+          </p>
+          <div class="hero__actions">
+            <button class="chip is-active" data-filter="all">All subjects</button>
+            <button class="chip" data-filter="Chemistry">Chemistry</button>
+            <button class="chip" data-filter="Maths">Combined Maths</button>
+            <button class="chip" data-filter="Physics">Physics</button>
+          </div>
+        </div>
+        <div class="hero__panel">
+          <div class="panel__card">
+            <p class="panel__label">Quick search</p>
+            <input id="search" type="search" placeholder="Search by year or title" />
+            <div class="panel__meta">
+              <span id="count">0 papers</span>
+              <span id="updated">Updated just now</span>
+            </div>
+          </div>
+          <div class="panel__note">
+            <h2>Tip</h2>
+            <p>Run <code>node generate-papers.js</code> after adding new PDFs.</p>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="grid" id="grid"></section>
+        <section class="empty" id="empty" hidden>
+          <h2>No papers found</h2>
+          <p>Try a different filter or search term.</p>
+        </section>
+      </main>
+    </div>
+
+    <script src="papers-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
