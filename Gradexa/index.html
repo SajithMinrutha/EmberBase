@@ -249,23 +249,25 @@
                   ></select>
                 </div>
                 <div>
-                  <label class="text-sm text-muted">MCQ</label>
+                  <label class="text-sm text-muted" id="markMcqLabel">MCQ</label>
                   <input
                     id="markMcq"
                     type="number"
                     min="0"
                     max="50"
                     class="w-full p-2 rounded bg-white/5 text-slate-100"
+                    placeholder="MCQ"
                   />
                 </div>
                 <div>
-                  <label class="text-sm text-muted">Essay</label>
+                  <label class="text-sm text-muted" id="markEssayLabel">Essay</label>
                   <input
                     id="markEssay"
                     type="number"
                     min="0"
                     max="50"
                     class="w-full p-2 rounded bg-white/5 text-slate-100"
+                    placeholder="Essay"
                   />
                 </div>
                 <div>
@@ -331,6 +333,7 @@
                       <th class="p-2">MCQ</th>
                       <th class="p-2">Essay</th>
                       <th class="p-2">Total</th>
+                      <th class="p-2">Grade</th>
                       <th class="p-2">Note</th>
                       <th class="p-2">Actions</th>
                     </tr>

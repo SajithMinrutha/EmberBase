@@ -131,6 +131,14 @@ const buildLineSvg = ({ lines, width, height, padding }) => {
     </svg>`;
 };
 
+const gradeFromScore = (score) => {
+  if (score >= 75) return "A";
+  if (score >= 65) return "B";
+  if (score >= 55) return "C";
+  if (score >= 35) return "S";
+  return "W";
+};
+
 const renderHeader = () => {
   const todayLabel = qs("todayLabel");
   const profileLabel = qs("profileLabel");
@@ -297,13 +305,15 @@ const renderDashboard = () => {
               ) / subjectMarks.length
             );
       const barPct = Math.min(100, Math.round((avg / 100) * 100));
+      const grade = gradeFromScore(avg);
       averages.insertAdjacentHTML(
         "beforeend",
         `<div class="rounded-2xl bg-white/5 p-3">
           <div class="flex items-center justify-between text-sm">
             <span class="text-slate-100 font-semibold">${subject.name}</span>
-            <span class="text-muted">${avg} / 100</span>
+            <span class="text-slate-100 font-semibold">${grade}</span>
           </div>
+          <div class="text-xs text-muted mt-1">${avg} / 100 · ${grade}</div>
           <div class="mt-2 h-2 rounded-full bg-white/10">
             <div class="h-2 rounded-full bar-warm" style="width: ${barPct}%"></div>
           </div>
@@ -439,6 +449,29 @@ const renderSubjectOptions = () => {
     sessionSelect.removeAttribute("disabled");
     hint.textContent = "";
   }
+  updateMarkFormLabels();
+};
+
+const updateMarkFormLabels = () => {
+  const subject = qs("markSubject")?.value || "";
+  const isCombinedMaths = subject.toLowerCase().includes("combined maths");
+  const mcqLabel = qs("markMcqLabel");
+  const essayLabel = qs("markEssayLabel");
+  const mcqInput = qs("markMcq");
+  const essayInput = qs("markEssay");
+  if (!mcqLabel || !essayLabel || !mcqInput || !essayInput) return;
+
+  if (isCombinedMaths) {
+    mcqLabel.textContent = "Applied";
+    essayLabel.textContent = "Pure";
+    mcqInput.placeholder = "Applied";
+    essayInput.placeholder = "Pure";
+  } else {
+    mcqLabel.textContent = "MCQ";
+    essayLabel.textContent = "Essay";
+    mcqInput.placeholder = "MCQ";
+    essayInput.placeholder = "Essay";
+  }
 };
 
 const renderMarks = () => {
@@ -450,11 +483,12 @@ const renderMarks = () => {
   if (!filtered.length) {
     table.insertAdjacentHTML(
       "beforeend",
-      `<tr><td class="p-2 text-muted" colspan="6">No marks yet.</td></tr>`
+      `<tr><td class="p-2 text-muted" colspan="7">No marks yet.</td></tr>`
     );
   } else {
     filtered.forEach((m) => {
       const total = (Number(m.mcq) || 0) + (Number(m.essay) || 0);
+      const grade = gradeFromScore(total);
       table.insertAdjacentHTML(
         "beforeend",
         `<tr class="border-t border-white/5">
@@ -462,6 +496,7 @@ const renderMarks = () => {
           <td class="p-2">${m.mcq ?? "-"}</td>
           <td class="p-2">${m.essay ?? "-"}</td>
           <td class="p-2">${total}</td>
+          <td class="p-2">${grade}</td>
           <td class="p-2">${m.message || "-"}</td>
           <td class="p-2">
             <div class="flex flex-wrap gap-2">
@@ -693,7 +728,12 @@ const buildReportHtml = (rangeKey = "1y") => {
     (acc, m) => {
       const total = (Number(m.mcq) || 0) + (Number(m.essay) || 0);
       if (!acc || total > acc.total) {
-        return { total, subject: m.subject || "Unknown", note: m.message || "" };
+        return {
+          total,
+          subject: m.subject || "Unknown",
+          note: m.message || "",
+          grade: gradeFromScore(total),
+        };
       }
       return acc;
     },
@@ -784,6 +824,24 @@ const buildReportHtml = (rangeKey = "1y") => {
 
   const generatedAt = new Date().toLocaleString();
 
+  const marksRows = marks
+    .slice()
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+    .map((mark) => {
+      const total = (Number(mark.mcq) || 0) + (Number(mark.essay) || 0);
+      const grade = gradeFromScore(total);
+      return `<tr>
+          <td>${escapeHtml(mark.subject || "-")}</td>
+          <td>${mark.mcq ?? "-"}</td>
+          <td>${mark.essay ?? "-"}</td>
+          <td>${total}</td>
+          <td>${grade}</td>
+          <td>${escapeHtml(mark.message || "-")}</td>
+          <td>${mark.created_at ? escapeHtml(fmtDate(mark.created_at)) : "-"}</td>
+        </tr>`;
+    })
+    .join("");
+
   return `<!doctype html>
     <html lang="en">
       <head>
@@ -869,6 +927,25 @@ const buildReportHtml = (rangeKey = "1y") => {
           .report-dot--cool { fill: var(--accent-cool); }
           .report-axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.75rem; margin-top: 6px; }
           .report-note { color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+          .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.9rem;
+          }
+          .report-table th,
+          .report-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+          }
+          .report-table th {
+            color: var(--muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+          }
+          .report-table tbody tr:last-child td { border-bottom: none; }
           @media print {
             body { background: #ffffff; color: #111827; }
             .report-card { background: #ffffff; box-shadow: none; }
@@ -922,7 +999,7 @@ const buildReportHtml = (rangeKey = "1y") => {
             <p class="report-muted">
               ${
                 topMark
-                  ? `${escapeHtml(topMark.subject)} · ${topMark.total} total`
+                  ? `${escapeHtml(topMark.subject)} · ${topMark.total} total · ${topMark.grade}`
                   : "No marks logged yet."
               }
             </p>
@@ -946,6 +1023,28 @@ const buildReportHtml = (rangeKey = "1y") => {
             <div class="report-axis">${labels
               .map((label) => `<span>${escapeHtml(label)}</span>`)
               .join("")}</div>
+          </div>
+
+          <div class="report-card">
+            <h2>Marks Log</h2>
+            ${
+              marksRows
+                ? `<table class="report-table">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>MCQ</th>
+                        <th>Essay</th>
+                        <th>Total</th>
+                        <th>Grade</th>
+                        <th>Note</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>${marksRows}</tbody>
+                  </table>`
+                : `<p class="report-muted">No marks logged yet.</p>`
+            }
           </div>
         </div>
       </body>
@@ -1064,6 +1163,10 @@ qs("markForm").addEventListener("submit", (event) => {
 
 qs("markFilter").addEventListener("change", () => {
   renderMarks();
+});
+
+qs("markSubject").addEventListener("change", () => {
+  updateMarkFormLabels();
 });
 
 qs("markCancel").addEventListener("click", () => {
