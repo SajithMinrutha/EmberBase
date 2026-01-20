@@ -3,6 +3,7 @@ const path = require('path');
 
 const ROOT = __dirname;
 const TUTES_DIR = path.join(ROOT, 'Tutes');
+const OTHER_TUTES_DIR = path.join(ROOT, 'OtherTutes');
 const OUTPUT = path.join(ROOT, 'tutes-data.js');
 const TYPES = ['Theory', 'Revision'];
 const WATCH_DELAY_MS = 250;
@@ -20,18 +21,18 @@ function yearFromTitle(title) {
   return match ? match[0] : '';
 }
 
-function scanTutes() {
-  if (!fs.existsSync(TUTES_DIR)) {
-    fs.mkdirSync(TUTES_DIR, { recursive: true });
+function scanTuteDir(baseDir, baseLabel) {
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true });
   }
   const subjects = fs
-    .readdirSync(TUTES_DIR, { withFileTypes: true })
+    .readdirSync(baseDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 
   return subjects.map((subject) => {
-    const subjectPath = path.join(TUTES_DIR, subject);
+    const subjectPath = path.join(baseDir, subject);
     const result = {
       subject,
       theory: [],
@@ -52,7 +53,7 @@ function scanTutes() {
             title,
             year,
             file: path
-              .join('Tutes', subject, type, fileName)
+              .join(baseLabel, subject, type, fileName)
               .replace(/\\/g, '/'),
           };
         })
@@ -74,7 +75,8 @@ function scanTutes() {
 function writeTutesData() {
   const payload = {
     generatedAt: new Date().toISOString(),
-    subjects: scanTutes(),
+    subjects: scanTuteDir(TUTES_DIR, 'Tutes'),
+    otherSubjects: scanTuteDir(OTHER_TUTES_DIR, 'OtherTutes'),
   };
 
   const output = `window.TUTES_DATA = ${JSON.stringify(payload, null, 2)};\n`;
@@ -94,7 +96,8 @@ function startWatch() {
 
   if (process.platform === 'darwin' || process.platform === 'win32') {
     fs.watch(TUTES_DIR, { recursive: true }, schedule);
-    console.log('[tutes] Watching Tutes for changes...');
+    fs.watch(OTHER_TUTES_DIR, { recursive: true }, schedule);
+    console.log('[tutes] Watching Tutes and OtherTutes for changes...');
     return;
   }
 
@@ -110,20 +113,24 @@ function startWatch() {
   };
 
   const refreshWatchers = () => {
-    const subjectEntries = fs
-      .readdirSync(TUTES_DIR, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
+    const directories = new Set([TUTES_DIR, OTHER_TUTES_DIR]);
 
-    const directories = new Set([TUTES_DIR]);
-    subjectEntries.forEach((subject) => {
-      const subjectPath = path.join(TUTES_DIR, subject);
-      directories.add(subjectPath);
-      TYPES.forEach((type) => {
-        const typePath = path.join(subjectPath, type);
-        if (fs.existsSync(typePath)) {
-          directories.add(typePath);
-        }
+    [TUTES_DIR, OTHER_TUTES_DIR].forEach((dir) => {
+      if (!fs.existsSync(dir)) return;
+      const subjectEntries = fs
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+
+      subjectEntries.forEach((subject) => {
+        const subjectPath = path.join(dir, subject);
+        directories.add(subjectPath);
+        TYPES.forEach((type) => {
+          const typePath = path.join(subjectPath, type);
+          if (fs.existsSync(typePath)) {
+            directories.add(typePath);
+          }
+        });
       });
     });
 
@@ -139,7 +146,8 @@ function startWatch() {
 
   refreshWatchers();
   fs.watch(TUTES_DIR, refreshWatchers);
-  console.log('[tutes] Watching Tutes for changes...');
+  fs.watch(OTHER_TUTES_DIR, refreshWatchers);
+  console.log('[tutes] Watching Tutes and OtherTutes for changes...');
 }
 
 if (require.main === module) {

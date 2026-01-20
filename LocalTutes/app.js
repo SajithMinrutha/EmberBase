@@ -1,6 +1,9 @@
 const data = window.TUTES_DATA;
 const grid = document.getElementById('grid');
 const empty = document.getElementById('empty');
+const otherSection = document.getElementById('otherSection');
+const otherGrid = document.getElementById('otherGrid');
+const otherEmpty = document.getElementById('otherEmpty');
 const count = document.getElementById('count');
 const updated = document.getElementById('updated');
 const searchInput = document.getElementById('search');
@@ -44,8 +47,35 @@ function matchesFilters(tute) {
   return subjectMatch && typeMatch && haystack.includes(query);
 }
 
-function renderCards(tutes) {
-  grid.innerHTML = '';
+async function renameFile(filePath) {
+  const currentName = decodeURIComponent(filePath.split('/').pop() || '');
+  const baseName = currentName.replace(/\.pdf$/i, '');
+  const next = window.prompt('Rename file', baseName);
+  if (!next) return;
+  const newName = next.trim();
+  if (!newName) return;
+  try {
+    const res = await fetch('/api/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'emberstudy',
+        filePath,
+        newName,
+      }),
+    });
+    if (!res.ok) {
+      window.alert('Rename failed. Please try again.');
+      return;
+    }
+    window.location.reload();
+  } catch {
+    window.alert('Rename failed. Please try again.');
+  }
+}
+
+function renderCards(tutes, target) {
+  target.innerHTML = '';
   const fragment = document.createDocumentFragment();
 
   tutes.forEach((tute) => {
@@ -81,19 +111,37 @@ function renderCards(tutes) {
     download.textContent = 'Download';
     download.setAttribute('download', '');
 
-    actions.append(view, download);
+    const rename = document.createElement('button');
+    rename.type = 'button';
+    rename.textContent = 'Rename';
+    rename.addEventListener('click', () => {
+      renameFile(tute.file);
+    });
+
+    actions.append(view, download, rename);
     card.append(tags, title, meta, actions);
     fragment.append(card);
   });
 
-  grid.append(fragment);
+  target.append(fragment);
 }
 
 function updateUI() {
   const tutes = flattenSubjects(data?.subjects || []).filter(matchesFilters);
-  renderCards(tutes);
+  renderCards(tutes, grid);
   empty.hidden = tutes.length !== 0;
   count.textContent = `${tutes.length} tutes`;
+
+  const otherTutes = flattenSubjects(data?.otherSubjects || []).filter(matchesFilters);
+  if (otherSection) {
+    otherSection.hidden = (data?.otherSubjects || []).length === 0;
+  }
+  if (otherGrid) {
+    renderCards(otherTutes, otherGrid);
+  }
+  if (otherEmpty) {
+    otherEmpty.hidden = otherTutes.length !== 0;
+  }
 }
 
 function setActiveChips(container, value) {

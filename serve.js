@@ -11,6 +11,17 @@ const WATCH_TUTES = process.env.WATCH_TUTES !== '0';
 const DATA_DIR = path.join(ROOT, 'data');
 const TRACK_DATA_FILE = path.join(DATA_DIR, 'embertrack.json');
 const API_PREFIX = '/api/embertrack';
+const API_RENAME = '/api/rename';
+const VAULT_ROOT = path.join(ROOT, 'LocalAL');
+const STUDY_ROOT = path.join(ROOT, 'LocalTutes');
+const VAULT_ALLOWED = [
+  path.join(VAULT_ROOT, 'PastPapers'),
+  path.join(VAULT_ROOT, 'OtherPapers'),
+];
+const STUDY_ALLOWED = [
+  path.join(STUDY_ROOT, 'Tutes'),
+  path.join(STUDY_ROOT, 'OtherTutes'),
+];
 
 const ROUTES = [
   { prefix: '/embertrack', dir: path.join(ROOT, 'Gradexa') },
@@ -108,6 +119,86 @@ function writeTrackData(req, res) {
   });
 }
 
+function isSafeRenameTarget(baseRoot, allowedRoots, relativePath) {
+  const normalized = path.normalize(relativePath).replace(/^([/\\])+/, '');
+  const fullPath = path.resolve(baseRoot, normalized);
+  const allowed = allowedRoots.some((root) => fullPath.startsWith(root));
+  return allowed ? { fullPath, normalized } : null;
+}
+
+function sanitizeFileName(inputName) {
+  const base = path.basename(inputName);
+  if (!base) return null;
+  const ext = path.extname(base);
+  if (ext && ext.toLowerCase() !== '.pdf') {
+    return null;
+  }
+  return ext ? base : `${base}.pdf`;
+}
+
+function handleRename(req, res) {
+  let body = '';
+  req.on('data', (chunk) => {
+    body += chunk.toString();
+  });
+  req.on('end', () => {
+    try {
+      const payload = JSON.parse(body || '{}');
+      const kind = payload.kind;
+      const filePath = payload.filePath;
+      const newName = payload.newName;
+      if (!kind || !filePath || !newName) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'missing-fields' }));
+        return;
+      }
+
+      const safeName = sanitizeFileName(newName);
+      if (!safeName) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'invalid-name' }));
+        return;
+      }
+
+      let target;
+      if (kind === 'embervault') {
+        target = isSafeRenameTarget(VAULT_ROOT, VAULT_ALLOWED, filePath);
+      } else if (kind === 'emberstudy') {
+        target = isSafeRenameTarget(STUDY_ROOT, STUDY_ALLOWED, filePath);
+      } else {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'invalid-kind' }));
+        return;
+      }
+
+      if (!target) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'forbidden' }));
+        return;
+      }
+
+      const nextPath = path.join(path.dirname(target.fullPath), safeName);
+      fs.rename(target.fullPath, nextPath, (err) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'rename-failed' }));
+          return;
+        }
+        if (kind === 'embervault') {
+          writePapersData();
+        } else {
+          writeTutesData();
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'ok' }));
+      });
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'invalid-json' }));
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent(req.url || '/');
   if (urlPath.startsWith(API_PREFIX)) {
@@ -117,6 +208,15 @@ const server = http.createServer((req, res) => {
     }
     if (req.method === 'POST' || req.method === 'PUT') {
       writeTrackData(req, res);
+      return;
+    }
+    res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: 'method-not-allowed' }));
+    return;
+  }
+  if (urlPath.startsWith(API_RENAME)) {
+    if (req.method === 'POST') {
+      handleRename(req, res);
       return;
     }
     res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });

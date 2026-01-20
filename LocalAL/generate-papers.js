@@ -3,6 +3,7 @@ const path = require('path');
 
 const ROOT = __dirname;
 const PAPERS_DIR = path.join(ROOT, 'PastPapers');
+const OTHER_PAPERS_DIR = path.join(ROOT, 'OtherPapers');
 const OUTPUT = path.join(ROOT, 'papers-data.js');
 const WATCH_DELAY_MS = 250;
 
@@ -19,17 +20,17 @@ function yearFromTitle(title) {
   return match ? match[0] : '';
 }
 
-function scanPapers() {
-  if (!fs.existsSync(PAPERS_DIR)) {
-    fs.mkdirSync(PAPERS_DIR, { recursive: true });
+function scanSubjectDir(baseDir, baseLabel) {
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true });
   }
-  const subjects = fs.readdirSync(PAPERS_DIR, { withFileTypes: true })
+  const subjects = fs.readdirSync(baseDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 
-  const data = subjects.map((subject) => {
-    const subjectPath = path.join(PAPERS_DIR, subject);
+  return subjects.map((subject) => {
+    const subjectPath = path.join(baseDir, subject);
     const files = fs.readdirSync(subjectPath)
       .filter(isPdf)
       .map((fileName) => {
@@ -38,7 +39,7 @@ function scanPapers() {
         return {
           title,
           year,
-          file: path.join('PastPapers', subject, fileName).replace(/\\/g, '/'),
+          file: path.join(baseLabel, subject, fileName).replace(/\\/g, '/'),
         };
       })
       .sort((a, b) => {
@@ -53,14 +54,13 @@ function scanPapers() {
       papers: files,
     };
   });
-
-  return data;
 }
 
 function writePapersData() {
   const payload = {
     generatedAt: new Date().toISOString(),
-    subjects: scanPapers(),
+    subjects: scanSubjectDir(PAPERS_DIR, 'PastPapers'),
+    otherSubjects: scanSubjectDir(OTHER_PAPERS_DIR, 'OtherPapers'),
   };
 
   const output = `window.PAPERS_DATA = ${JSON.stringify(payload, null, 2)};\n`;
@@ -80,7 +80,8 @@ function startWatch() {
 
   if (process.platform === 'darwin' || process.platform === 'win32') {
     fs.watch(PAPERS_DIR, { recursive: true }, schedule);
-    console.log('[papers] Watching PastPapers for changes...');
+    fs.watch(OTHER_PAPERS_DIR, { recursive: true }, schedule);
+    console.log('[papers] Watching PastPapers and OtherPapers for changes...');
     return;
   }
 
@@ -92,18 +93,22 @@ function startWatch() {
   };
 
   const refreshWatchers = () => {
-    const entries = fs.readdirSync(PAPERS_DIR, { withFileTypes: true });
-    const subjectDirs = entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => path.join(PAPERS_DIR, entry.name));
+    [PAPERS_DIR, OTHER_PAPERS_DIR].forEach((dir) => {
+      if (!fs.existsSync(dir)) return;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      const subjectDirs = entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => path.join(dir, entry.name));
 
-    addWatcher(PAPERS_DIR);
-    subjectDirs.forEach(addWatcher);
+      addWatcher(dir);
+      subjectDirs.forEach(addWatcher);
+    });
   };
 
   refreshWatchers();
   fs.watch(PAPERS_DIR, refreshWatchers);
-  console.log('[papers] Watching PastPapers for changes...');
+  fs.watch(OTHER_PAPERS_DIR, refreshWatchers);
+  console.log('[papers] Watching PastPapers and OtherPapers for changes...');
 }
 
 if (require.main === module) {
