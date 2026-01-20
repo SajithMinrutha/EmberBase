@@ -8,6 +8,7 @@ const SYNC_DEBOUNCE_MS = 400;
 let syncTimer = null;
 
 const defaultData = {
+  updated_at: null,
   profile: { name: "Student", birthday: "", dailyTarget: 60 },
   subjects: [
     { id: "subject-1", name: "Combined maths", created_at: nowIso() },
@@ -65,16 +66,18 @@ const scheduleServerSync = (data) => {
 };
 
 const writeStore = (data, options = {}) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const payload = options.touch === false ? data : { ...data, updated_at: nowIso() };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(STORAGE_EVENT));
   }
   if (options.sync !== false) {
-    scheduleServerSync(data);
+    scheduleServerSync(payload);
   }
 };
 
 const normalizeData = (data) => ({
+  updated_at: typeof data.updated_at === "string" ? data.updated_at : null,
   profile: { ...defaultData.profile, ...(data.profile || {}) },
   subjects: Array.isArray(data.subjects) ? data.subjects : [],
   marks: Array.isArray(data.marks) ? data.marks : [],
@@ -227,22 +230,28 @@ export const syncFromServer = async () => {
     if (!payload || typeof payload !== "object") return false;
     const server = normalizeData(payload);
 
-    const score = (data) =>
-      (data.marks?.length || 0) * 2 +
-      (data.studySessions?.length || 0) * 2 +
-      (data.todos?.length || 0) +
-      (data.goals?.length || 0) +
-      (data.notes ? 1 : 0);
+    const localUpdated = Date.parse(local.updated_at || "") || 0;
+    const serverUpdated =
+      typeof payload.updated_at === "string"
+        ? Date.parse(payload.updated_at) || 0
+        : 0;
 
-    const localScore = score(local);
-    const serverScore = score(server);
-
-    if (localScore > serverScore) {
+    if (!serverUpdated && localUpdated) {
       scheduleServerSync(local);
       return true;
     }
 
-    writeStore(server, { sync: false });
+    if (serverUpdated && !localUpdated) {
+      writeStore(server, { sync: false, touch: false });
+      return true;
+    }
+
+    if (localUpdated > serverUpdated) {
+      scheduleServerSync(local);
+      return true;
+    }
+
+    writeStore(server, { sync: false, touch: false });
     return true;
   } catch {
     return false;
