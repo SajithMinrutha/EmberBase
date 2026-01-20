@@ -23,6 +23,7 @@ import {
   saveProfile,
   updateMark,
   updateTodo,
+  syncFromServer,
 } from "./localStore.js";
 
 const state = {
@@ -115,10 +116,12 @@ const buildLineSvg = ({ lines, width, height, padding }) => {
         .map((point, index) => {
           const tooltip = line.tooltips?.[index];
           const title = tooltip ? `<title>${escapeHtml(tooltip)}</title>` : "";
-          return `<circle class="${line.dotClass}" cx="${point.x}" cy="${point.y}" r="3.6">${title}</circle>`;
+          const dotStyle = line.dotFill ? ` style="fill: ${line.dotFill}"` : "";
+          return `<circle class="${line.dotClass}" cx="${point.x}" cy="${point.y}" r="3.6"${dotStyle}>${title}</circle>`;
         })
         .join("");
-      return `<path class="${line.className}" d="${path}"></path>${dots}`;
+      const pathStyle = line.stroke ? ` style="stroke: ${line.stroke}"` : "";
+      return `<path class="${line.className}" d="${path}"${pathStyle}></path>${dots}`;
     })
     .join("");
 
@@ -167,6 +170,42 @@ const renderDashboard = () => {
   qs("statMarks").textContent = marks.length;
   qs("statTodos").textContent = todos.filter((t) => !t.completed).length;
   qs("statStreak").textContent = calculateStreak(sessions);
+
+  const topList = qs("statTopSubjects");
+  if (topList) {
+    topList.innerHTML = "";
+    if (!subjects.length) {
+      topList.innerHTML = `<p class="text-xs text-muted">No subjects yet.</p>`;
+    } else {
+      subjects.forEach((subject) => {
+        const subjectMarks = marks.filter((m) => m.subject === subject.name);
+        const best = subjectMarks.reduce((acc, m) => {
+          const total = (Number(m.mcq) || 0) + (Number(m.essay) || 0);
+          if (!acc || total > acc.total) {
+            return { total, note: m.message || "" };
+          }
+          return acc;
+        }, null);
+        if (!best) {
+          topList.insertAdjacentHTML(
+            "beforeend",
+            `<div class="flex items-center justify-between text-xs text-muted">
+              <span>${subject.name}</span>
+              <span>-</span>
+            </div>`
+          );
+          return;
+        }
+        topList.insertAdjacentHTML(
+          "beforeend",
+          `<div class="flex items-center justify-between text-sm">
+            <span class="text-slate-100 font-semibold">${subject.name}</span>
+            <span class="text-slate-100">${best.total}</span>
+          </div>`
+        );
+      });
+    }
+  }
 
   const recentMarks = marks.slice(0, 4);
   const recentMarksEl = qs("recentMarks");
@@ -279,15 +318,40 @@ const renderMarksVisualizer = () => {
   if (!container) return;
   const subjects = getSubjects();
   const marks = getMarks();
+  const palette = [
+    {
+      lineClass: "chart-line chart-line--accent",
+      dotClass: "chart-dot chart-dot--accent",
+    },
+    {
+      lineClass: "chart-line chart-line--warm",
+      dotClass: "chart-dot chart-dot--warm",
+    },
+    {
+      lineClass: "chart-line chart-line--sky",
+      dotClass: "chart-dot chart-dot--sky",
+    },
+  ];
+  const subjectNames = Array.from(
+    new Set([
+      ...subjects.map((subject) => subject.name),
+      ...marks.map((mark) => mark.subject).filter(Boolean),
+    ])
+  );
   container.innerHTML = "";
-  if (!subjects.length) {
+  if (!subjectNames.length) {
     container.innerHTML = `<p class="chart-empty">Add subjects to see marks trends.</p>`;
     return;
   }
 
-  subjects.forEach((subject) => {
+  if (!marks.length) {
+    container.innerHTML = `<p class="chart-empty">Add marks to see trends.</p>`;
+    return;
+  }
+
+  subjectNames.forEach((subjectName, index) => {
     const subjectMarks = marks
-      .filter((m) => m.subject === subject.name)
+      .filter((m) => m.subject === subjectName)
       .slice()
       .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
     const recentMarks = subjectMarks.slice(-8);
@@ -304,18 +368,19 @@ const renderMarksVisualizer = () => {
       : 0;
     const latest = recentTotals.length ? recentTotals[recentTotals.length - 1] : 0;
 
+    const tone = palette[index % palette.length];
     const chart = recentTotals.length
-        ? buildLineSvg({
-            lines: [
-              {
-                values: recentTotals,
-                tooltips,
-                className: "chart-line",
-                dotClass: "chart-dot",
-              },
-            ],
-            width: 260,
-            height: 80,
+      ? buildLineSvg({
+          lines: [
+            {
+              values: recentTotals,
+              tooltips,
+              className: tone.lineClass,
+              dotClass: tone.dotClass,
+            },
+          ],
+          width: 260,
+          height: 80,
           padding: 8,
         })
       : `<p class="chart-empty">No marks yet.</p>`;
@@ -325,7 +390,7 @@ const renderMarksVisualizer = () => {
       `<div class="chart-card">
         <div class="chart-head">
           <div>
-            <div class="text-slate-100 font-semibold">${subject.name}</div>
+            <div class="text-slate-100 font-semibold">${subjectName}</div>
             <div class="chart-meta">Avg ${avg} · Latest ${latest}</div>
           </div>
         </div>
@@ -589,6 +654,316 @@ const renderPlannerChart = () => {
   axis.innerHTML = labels.map((label) => `<span>${label}</span>`).join("");
 };
 
+const REPORT_RANGES = {
+  "90d": { label: "Last 90 days", days: 90 },
+  "180d": { label: "Last 6 months", days: 180 },
+  "1y": { label: "Last 1 year", days: 365 },
+  "2y": { label: "Last 2 years", days: 730 },
+  all: { label: "All time", days: null },
+};
+
+const getReportRange = (key) => REPORT_RANGES[key] || REPORT_RANGES["1y"];
+
+const buildReportHtml = (rangeKey = "1y") => {
+  const range = getReportRange(rangeKey);
+  const endDate = new Date();
+  const startDate = range.days
+    ? new Date(endDate.getTime() - range.days * 24 * 60 * 60 * 1000)
+    : null;
+  const rangeLabel = startDate
+    ? `${startDate.toLocaleDateString()} – ${endDate.toLocaleDateString()}`
+    : "All time";
+  const inRange = (dateValue) => {
+    if (!startDate) return true;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return false;
+    return date >= startDate && date <= endDate;
+  };
+
+  const profile = getProfile();
+  const subjects = getSubjects();
+  const marks = getMarks().filter((m) => inRange(m.created_at));
+  const sessions = getStudySessions().filter((s) => inRange(s.session_date));
+  const todos = getTodos().filter((t) => inRange(t.created_at));
+  const goals = getGoals();
+
+  const completedTodos = todos.filter((t) => t.completed).length;
+  const openTodos = todos.length - completedTodos;
+  const topMark = marks.reduce(
+    (acc, m) => {
+      const total = (Number(m.mcq) || 0) + (Number(m.essay) || 0);
+      if (!acc || total > acc.total) {
+        return { total, subject: m.subject || "Unknown", note: m.message || "" };
+      }
+      return acc;
+    },
+    null
+  );
+
+  const subjectRows = subjects
+    .map((subject) => {
+      const subjectMarks = marks.filter((m) => m.subject === subject.name);
+      const avg = subjectMarks.length
+        ? Math.round(
+            subjectMarks.reduce(
+              (sum, m) => sum + (Number(m.mcq) || 0) + (Number(m.essay) || 0),
+              0
+            ) / subjectMarks.length
+          )
+        : 0;
+      const barWidth = Math.min(100, Math.round((avg / 100) * 100));
+      return `<div class="report-row">
+          <div>
+            <div class="report-label">${subject.name}</div>
+            <div class="report-muted">${avg} / 100 average</div>
+          </div>
+          <div class="report-bar">
+            <span style="width: ${barWidth}%"></span>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  const days = 7;
+  const start = new Date();
+  start.setDate(start.getDate() - (days - 1));
+  const actualSeries = [];
+  const targetSeries = [];
+  const labels = [];
+
+  for (let i = 0; i < days; i += 1) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+    const key = day.toISOString().slice(0, 10);
+    const daySessions = sessions.filter((s) => s.session_date === key);
+    const actual = daySessions.reduce(
+      (sum, s) => sum + (Number(s.actual_minutes) || 0),
+      0
+    );
+    const target = daySessions.reduce(
+      (sum, s) => sum + (Number(s.target_minutes) || 0),
+      0
+    );
+    actualSeries.push(actual);
+    targetSeries.push(target);
+    labels.push(day.toLocaleDateString(undefined, { weekday: "short" }));
+  }
+
+  const actualTooltips = labels.map(
+    (label, index) => `${label} · ${actualSeries[index]} min actual`
+  );
+  const targetTooltips = labels.map(
+    (label, index) => `${label} · ${targetSeries[index]} min target`
+  );
+
+  const plannerChart = sessions.length
+    ? buildLineSvg({
+        lines: [
+          {
+            values: actualSeries,
+            tooltips: actualTooltips,
+            className: "report-line report-line--warm",
+            dotClass: "report-dot report-dot--warm",
+            stroke: "#f1a25a",
+            dotFill: "#f1a25a",
+          },
+          {
+            values: targetSeries,
+            tooltips: targetTooltips,
+            className: "report-line report-line--cool",
+            dotClass: "report-dot report-dot--cool",
+            stroke: "#2f9f95",
+            dotFill: "#2f9f95",
+          },
+        ],
+        width: 640,
+        height: 180,
+        padding: 12,
+      })
+    : `<p class="report-muted">No sessions logged yet.</p>`;
+
+  const generatedAt = new Date().toLocaleString();
+
+  return `<!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>EmberTrack Report</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        />
+        <style>
+          :root {
+            --bg: #0f1419;
+            --panel: rgba(20, 28, 36, 0.9);
+            --line: rgba(198, 212, 228, 0.18);
+            --accent: #42b8ad;
+            --accent-warm: #f1a25a;
+            --accent-cool: #2f9f95;
+            --text: #f8fafc;
+            --muted: #9aa7b8;
+            --shadow: 0 30px 60px rgba(2, 6, 20, 0.55);
+          }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: "Space Grotesk", sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at 12% 18%, rgba(66, 184, 173, 0.22), transparent 55%),
+              radial-gradient(circle at 82% 12%, rgba(241, 162, 90, 0.22), transparent 55%),
+              linear-gradient(180deg, #141b22, #0f1419);
+            min-height: 100vh;
+            padding: 32px;
+          }
+          body, .report-card, .report-bar span, svg {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          h1, h2 { font-family: "Fraunces", serif; letter-spacing: -0.02em; }
+          .report { max-width: 980px; margin: 0 auto; display: grid; gap: 24px; }
+          .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+          }
+          .report-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+          }
+          .report-actions {
+            display: flex;
+            gap: 12px;
+          }
+          .report-button {
+            border: 1px solid var(--line);
+            background: rgba(15, 20, 26, 0.7);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+          }
+          .report-meta { color: var(--muted); font-size: 0.9rem; }
+          .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+          .report-stat { display: grid; gap: 6px; }
+          .report-stat h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+          .report-stat p { font-size: 1.6rem; font-weight: 600; }
+          .report-muted { color: var(--muted); font-size: 0.9rem; }
+          .report-row { display: grid; gap: 10px; margin-bottom: 12px; }
+          .report-label { font-weight: 600; }
+          .report-bar { height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 999px; overflow: hidden; }
+          .report-bar span { display: block; height: 100%; background: linear-gradient(120deg, var(--accent), var(--accent-warm)); }
+          .report-chart { margin-top: 12px; }
+          .chart-gridline { stroke: rgba(255, 255, 255, 0.08); stroke-width: 1; }
+          .report-line { fill: none; stroke-width: 2.4; }
+          .report-line--warm { stroke: var(--accent-warm); }
+          .report-line--cool { stroke: var(--accent-cool); }
+          .report-dot { stroke: rgba(15, 20, 26, 0.8); stroke-width: 1; }
+          .report-dot--warm { fill: var(--accent-warm); }
+          .report-dot--cool { fill: var(--accent-cool); }
+          .report-axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.75rem; margin-top: 6px; }
+          .report-note { color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+          @media print {
+            body { background: #ffffff; color: #111827; }
+            .report-card { background: #ffffff; box-shadow: none; }
+            .report-meta, .report-muted, .report-note { color: #4b5563; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="report">
+          <div class="report-header">
+            <div>
+              <h1>EmberTrack Report</h1>
+              <p class="report-meta">Generated for ${escapeHtml(
+                profile.name || "Student"
+              )} · ${escapeHtml(generatedAt)}</p>
+              <p class="report-meta">Range: ${escapeHtml(
+                rangeLabel
+              )} · ${escapeHtml(range.label)}</p>
+            </div>
+            <div class="report-actions">
+              <button class="report-button" onclick="window.print()">Print / Save PDF</button>
+            </div>
+          </div>
+          <p class="report-note">Tip: enable background graphics in your print settings for full color.</p>
+
+          <div class="report-card report-grid">
+            <div class="report-stat">
+              <h3>Marks logged</h3>
+              <p>${marks.length}</p>
+              <span class="report-muted">Across ${subjects.length} subjects</span>
+            </div>
+            <div class="report-stat">
+              <h3>Study sessions</h3>
+              <p>${sessions.length}</p>
+              <span class="report-muted">${todos.length} tasks total</span>
+            </div>
+            <div class="report-stat">
+              <h3>Tasks done</h3>
+              <p>${completedTodos}</p>
+              <span class="report-muted">${openTodos} remaining</span>
+            </div>
+            <div class="report-stat">
+              <h3>Goals</h3>
+              <p>${goals.filter((g) => g.completed).length}/${goals.length}</p>
+              <span class="report-muted">Completed</span>
+            </div>
+          </div>
+
+          <div class="report-card">
+            <h2>Top Mark</h2>
+            <p class="report-muted">
+              ${
+                topMark
+                  ? `${escapeHtml(topMark.subject)} · ${topMark.total} total`
+                  : "No marks logged yet."
+              }
+            </p>
+            ${
+              topMark?.note
+                ? `<p class="report-muted">Note: ${escapeHtml(topMark.note)}</p>`
+                : ""
+            }
+          </div>
+
+          <div class="report-card">
+            <h2>Subject Averages</h2>
+            <div class="report-chart">
+              ${subjectRows || `<p class="report-muted">No subjects yet.</p>`}
+            </div>
+          </div>
+
+          <div class="report-card">
+            <h2>Study Trend (Last 7 Days)</h2>
+            <div class="report-chart">${plannerChart}</div>
+            <div class="report-axis">${labels
+              .map((label) => `<span>${escapeHtml(label)}</span>`)
+              .join("")}</div>
+          </div>
+        </div>
+      </body>
+    </html>`;
+};
+
+const openReport = (rangeKey) => {
+  const reportWindow = window.open("", "_blank");
+  if (!reportWindow) {
+    alert("Popup blocked. Allow popups to open the report.");
+    return;
+  }
+  reportWindow.document.open();
+  reportWindow.document.write(buildReportHtml(rangeKey));
+  reportWindow.document.close();
+  reportWindow.focus();
+};
+
 const renderGoals = () => {
   const goals = getGoals();
   const list = qs("goalList");
@@ -722,6 +1097,11 @@ qs("todoForm").addEventListener("submit", (event) => {
   if (!title) return;
   addTodo({ title, priority });
   qs("todoTitle").value = "";
+});
+
+qs("reportBtn").addEventListener("click", () => {
+  const rangeKey = qs("reportRange")?.value || "1y";
+  openReport(rangeKey);
 });
 
 qs("todoList").addEventListener("click", (event) => {
@@ -937,6 +1317,10 @@ qs("quickNotes").addEventListener("input", (event) => {
 });
 
 window.addEventListener("embertrack-storage", renderAll);
+syncFromServer();
+window.addEventListener("focus", () => {
+  syncFromServer();
+});
 window.addEventListener("hashchange", () => {
   const nextView = window.location.hash.replace("#", "") || "dashboard";
   state.activeView = nextView;

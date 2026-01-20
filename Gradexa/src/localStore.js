@@ -3,6 +3,9 @@ const makeId = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const STORAGE_KEY = "embertrack-data-v1";
 const LEGACY_STORAGE_KEY = "gradexa-data-v1";
 const STORAGE_EVENT = "embertrack-storage";
+const SERVER_ENDPOINT = "/api/embertrack";
+const SYNC_DEBOUNCE_MS = 400;
+let syncTimer = null;
 
 const defaultData = {
   profile: { name: "Student", birthday: "", dailyTarget: 60 },
@@ -17,6 +20,9 @@ const defaultData = {
   notes: "",
   goals: [],
 };
+
+const canSync = () =>
+  typeof window !== "undefined" && typeof fetch === "function";
 
 const readStore = () => {
   if (typeof localStorage === "undefined") return { ...defaultData };
@@ -41,10 +47,30 @@ const readStore = () => {
   }
 };
 
-const writeStore = (data) => {
+const scheduleServerSync = (data) => {
+  if (!canSync()) return;
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    syncTimer = null;
+    try {
+      await fetch(SERVER_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      // Ignore sync errors; local storage remains source of truth.
+    }
+  }, SYNC_DEBOUNCE_MS);
+};
+
+const writeStore = (data, options = {}) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(STORAGE_EVENT));
+  }
+  if (options.sync !== false) {
+    scheduleServerSync(data);
   }
 };
 
@@ -185,4 +211,40 @@ export const importData = (payload) => {
 
 export const resetStore = () => {
   writeStore({ ...defaultData });
+};
+
+export const syncFromServer = async () => {
+  if (!canSync()) return false;
+  const local = readStore();
+  try {
+    const res = await fetch(SERVER_ENDPOINT, { cache: "no-store" });
+    if (res.status === 404) {
+      scheduleServerSync(local);
+      return false;
+    }
+    if (!res.ok) return false;
+    const payload = await res.json();
+    if (!payload || typeof payload !== "object") return false;
+    const server = normalizeData(payload);
+
+    const score = (data) =>
+      (data.marks?.length || 0) * 2 +
+      (data.studySessions?.length || 0) * 2 +
+      (data.todos?.length || 0) +
+      (data.goals?.length || 0) +
+      (data.notes ? 1 : 0);
+
+    const localScore = score(local);
+    const serverScore = score(server);
+
+    if (localScore > serverScore) {
+      scheduleServerSync(local);
+      return true;
+    }
+
+    writeStore(server, { sync: false });
+    return true;
+  } catch {
+    return false;
+  }
 };

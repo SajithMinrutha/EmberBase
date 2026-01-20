@@ -63,7 +63,12 @@ function renderCards(papers) {
     view.rel = 'noopener';
     view.textContent = 'View';
 
-    actions.append(view);
+    const download = document.createElement('a');
+    download.href = paper.file;
+    download.setAttribute('download', '');
+    download.textContent = 'Download';
+
+    actions.append(view, download);
     card.append(subject, title, meta, actions);
     fragment.append(card);
   });

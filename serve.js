@@ -8,6 +8,9 @@ const ROOT = __dirname;
 const PORT = process.env.PORT || 5050;
 const WATCH_PAPERS = process.env.WATCH_PAPERS !== '0';
 const WATCH_TUTES = process.env.WATCH_TUTES !== '0';
+const DATA_DIR = path.join(ROOT, 'data');
+const TRACK_DATA_FILE = path.join(DATA_DIR, 'embertrack.json');
+const API_PREFIX = '/api/embertrack';
 
 const ROUTES = [
   { prefix: '/embertrack', dir: path.join(ROOT, 'Gradexa') },
@@ -59,8 +62,67 @@ function send(res, filePath) {
   });
 }
 
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+function readTrackData(res) {
+  fs.readFile(TRACK_DATA_FILE, 'utf8', (err, raw) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'no-data' }));
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(raw);
+  });
+}
+
+function writeTrackData(req, res) {
+  let body = '';
+  req.on('data', (chunk) => {
+    body += chunk.toString();
+  });
+  req.on('end', () => {
+    try {
+      const parsed = JSON.parse(body || '{}');
+      ensureDataDir();
+      fs.writeFile(TRACK_DATA_FILE, JSON.stringify(parsed, null, 2), 'utf8', (err) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'write-failed' }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'ok' }));
+      });
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'invalid-json' }));
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent(req.url || '/');
+  if (urlPath.startsWith(API_PREFIX)) {
+    if (req.method === 'GET') {
+      readTrackData(res);
+      return;
+    }
+    if (req.method === 'POST' || req.method === 'PUT') {
+      writeTrackData(req, res);
+      return;
+    }
+    res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: 'method-not-allowed' }));
+    return;
+  }
   const route = resolveRoute(urlPath);
 
   if (route.redirect) {

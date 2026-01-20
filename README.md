@@ -42,13 +42,26 @@ Location: `Gradexa/`
 
 Features:
 - Marks log with edit + export
-- Study planner with targets vs actual
+- Study planner with targets vs actual + trend chart
 - Tasks + goals + streaks
-- Subject averages and charts
+- Subject averages and per-subject top marks
+- Marks visualizer and printable report
 
 Notes:
 - Data is stored in browser local storage under `embertrack-data-v1`.
 - Legacy data auto-migrates from `gradexa-data-v1`.
+- When running via the EmberBase server, devices on the same network can share
+  the same EmberTrack data (LAN sync).
+
+Report export:
+- In EmberTrack → Settings → Data Controls → `Generate Report` to open a modern,
+  printable report (with a print/save PDF button).
+
+LAN sync (shared data across devices)
+- Run the EmberBase server (`npm start`) on your computer.
+- Open EmberTrack on any device on the same Wi-Fi via `http://<YOUR_IP>:5050/embertrack/`.
+- EmberTrack will auto-sync data to the server; other devices will pick it up on reload
+  or when the app regains focus.
 
 If you update styles in `Gradexa/src/index.css`, rebuild the compiled CSS:
 
@@ -131,6 +144,68 @@ Ports:
 ## Project scripts
 
 - `npm start` (root): serves hub + all apps at `http://localhost:5050`
+
+## Run on startup (optional)
+
+### macOS (LaunchAgents)
+
+1) Create a LaunchAgent file at `~/Library/LaunchAgents/com.emberbase.server.plist`
+2) Paste the following (update the paths if your project lives elsewhere):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.emberbase.server</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/env</string>
+      <string>npm</string>
+      <string>start</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/minrutha/Documents/CODING2025/LearnHub</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/emberbase.out</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/emberbase.err</string>
+  </dict>
+</plist>
+```
+
+3) Load it:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.emberbase.server.plist
+```
+
+To stop it:
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.emberbase.server.plist
+```
+
+### Windows (Task Scheduler)
+
+1) Open Task Scheduler → Create Task
+2) General:
+   - Name: `EmberBase`
+   - Select **Run whether user is logged on or not**
+3) Triggers → New:
+   - Begin the task: **At startup**
+4) Actions → New:
+   - Program/script: `npm`
+   - Add arguments: `start`
+   - Start in: `C:\Users\minrutha\Documents\CODING2025\LearnHub`
+5) Save and enter your Windows password when prompted.
+
+To test, right-click the task and choose **Run**.
 
 ## Generated files
 
