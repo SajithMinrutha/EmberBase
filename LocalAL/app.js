@@ -7,7 +7,9 @@ const otherEmpty = document.getElementById('otherEmpty');
 const count = document.getElementById('count');
 const updated = document.getElementById('updated');
 const searchInput = document.getElementById('search');
-const chips = Array.from(document.querySelectorAll('.chip'));
+const subjectChipsContainer = document.getElementById('subjectChips');
+const TRACK_SUBJECT_ENDPOINT = '/api/embertrack';
+let trackSubjectNames = [];
 
 const uploadToggle = document.getElementById('uploadToggle');
 const uploadModal = document.getElementById('uploadModal');
@@ -326,6 +328,57 @@ function formatDate(isoString) {
   return `Updated ${date.toLocaleDateString()}`;
 }
 
+function getLocalSubjectNames() {
+  return [
+    ...(data?.subjects || []).map((subject) => subject.subject),
+    ...(data?.otherSubjects || []).map((subject) => subject.subject),
+  ].filter(Boolean);
+}
+
+function getUnifiedSubjectNames() {
+  const subjects = Array.from(
+    new Set([
+      ...trackSubjectNames.filter(Boolean),
+      ...getLocalSubjectNames(),
+    ])
+  );
+  return subjects.sort((a, b) => a.localeCompare(b));
+}
+
+function addSubjectChip(value, label) {
+  if (!subjectChipsContainer) return;
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'chip';
+  chip.dataset.filter = value;
+  chip.textContent = label;
+  chip.addEventListener('click', () => {
+    state.filter = value;
+    setActiveChip(state.filter);
+    updateUI();
+  });
+  subjectChipsContainer.append(chip);
+}
+
+function setActiveChip(value) {
+  if (!subjectChipsContainer) return;
+  subjectChipsContainer.querySelectorAll('.chip').forEach((chip) => {
+    chip.classList.toggle('is-active', chip.dataset.filter === value);
+  });
+}
+
+function buildSubjectChips() {
+  if (!subjectChipsContainer) return;
+  subjectChipsContainer.innerHTML = '';
+  const subjects = getUnifiedSubjectNames();
+  addSubjectChip('all', 'All subjects');
+  subjects.forEach((subject) => addSubjectChip(subject, subject));
+  if (state.filter !== 'all' && !subjects.includes(state.filter)) {
+    state.filter = 'all';
+  }
+  setActiveChip(state.filter);
+}
+
 function flattenSubjects(subjects) {
   return subjects.flatMap((subject) =>
     subject.papers.map((paper) => ({
@@ -350,15 +403,9 @@ function setUploadStatus(message) {
 
 function buildUploadSubjects() {
   if (!uploadSubject) return;
-  const subjects = [
-    ...(data?.subjects || []).map((s) => s.subject),
-    ...(data?.otherSubjects || []).map((s) => s.subject),
-  ]
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b));
-  const unique = Array.from(new Set(subjects));
+  const subjects = getUnifiedSubjectNames();
   uploadSubject.innerHTML = '';
-  unique.forEach((subject) => {
+  subjects.forEach((subject) => {
     const option = document.createElement('option');
     option.value = subject;
     option.textContent = subject;
@@ -368,7 +415,7 @@ function buildUploadSubjects() {
   newOption.value = NEW_SUBJECT_VALUE;
   newOption.textContent = 'New subject...';
   uploadSubject.append(newOption);
-  uploadSubject.value = unique[0] || NEW_SUBJECT_VALUE;
+  uploadSubject.value = subjects[0] || NEW_SUBJECT_VALUE;
   if (uploadSubjectRow) {
     uploadSubjectRow.classList.toggle(
       'is-hidden',
@@ -561,20 +608,6 @@ function updateUI() {
   }
 }
 
-function setActiveChip(value) {
-  chips.forEach((chip) => {
-    chip.classList.toggle('is-active', chip.dataset.filter === value);
-  });
-}
-
-chips.forEach((chip) => {
-  chip.addEventListener('click', () => {
-    state.filter = chip.dataset.filter;
-    setActiveChip(state.filter);
-    updateUI();
-  });
-});
-
 searchInput.addEventListener('input', (event) => {
   state.query = event.target.value;
   updateUI();
@@ -606,8 +639,37 @@ if (uploadSubmit) {
   uploadSubmit.addEventListener('click', handleUpload);
 }
 
-if (data) {
+function initContent() {
+  if (!data) return;
   updated.textContent = formatDate(data.generatedAt);
+  buildSubjectChips();
   buildUploadSubjects();
   updateUI();
 }
+
+async function loadTrackSubjectNames() {
+  if (typeof fetch !== 'function') {
+    return [];
+  }
+  try {
+    const response = await fetch(TRACK_SUBJECT_ENDPOINT, { cache: 'no-store' });
+    if (!response.ok) return [];
+    const payload = await response.json();
+    if (!Array.isArray(payload.subjects)) return [];
+    return payload.subjects
+      .map((subject) => String(subject.name || '').trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+initContent();
+loadTrackSubjectNames()
+  .then((names) => {
+    trackSubjectNames = names;
+  })
+  .catch(() => {
+    trackSubjectNames = [];
+  })
+  .finally(initContent);

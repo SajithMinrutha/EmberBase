@@ -49,6 +49,11 @@ The server is a single Node process serving static files plus the local upload e
 - EmberVault: `http://localhost:5050/embervault/`
 - EmberStudy: `http://localhost:5050/emberstudy/`
 
+### Unified subject names
+
+Subject chips and upload dropdowns inside EmberVault and EmberStudy now pull the current subject list from EmberTrack (`/api/embertrack`), so renaming or adding subjects there automatically refreshes the available filters/subjects in the other two apps.
+Tip: change subjects inside EmberTrack → Settings to update the shared subject list for EmberVault/EmberStudy.
+
 ## EmberTrack (grades + planner)
 
 Location: `Gradexa/`

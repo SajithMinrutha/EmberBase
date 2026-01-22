@@ -9,6 +9,8 @@ const updated = document.getElementById('updated');
 const searchInput = document.getElementById('search');
 const subjectChips = document.getElementById('subjectChips');
 const typeChips = document.getElementById('typeChips');
+const TRACK_SUBJECT_ENDPOINT = '/api/embertrack';
+let trackSubjectNames = [];
 
 const uploadToggle = document.getElementById('uploadToggle');
 const uploadModal = document.getElementById('uploadModal');
@@ -329,6 +331,23 @@ function formatDate(isoString) {
   return `Updated ${date.toLocaleDateString()}`;
 }
 
+function getLocalSubjectNames() {
+  return [
+    ...(data?.subjects || []).map((subject) => subject.subject),
+    ...(data?.otherSubjects || []).map((subject) => subject.subject),
+  ].filter(Boolean);
+}
+
+function getUnifiedSubjectNames() {
+  const subjects = Array.from(
+    new Set([
+      ...trackSubjectNames.filter(Boolean),
+      ...getLocalSubjectNames(),
+    ])
+  );
+  return subjects.sort((a, b) => a.localeCompare(b));
+}
+
 function flattenSubjects(subjects) {
   return subjects.flatMap((subject) => {
     const theory = (subject.theory || []).map((tute) => ({
@@ -361,15 +380,9 @@ function setUploadStatus(message) {
 
 function buildUploadSubjects() {
   if (!uploadSubject) return;
-  const subjects = [
-    ...(data?.subjects || []).map((s) => s.subject),
-    ...(data?.otherSubjects || []).map((s) => s.subject),
-  ]
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b));
-  const unique = Array.from(new Set(subjects));
+  const subjects = getUnifiedSubjectNames();
   uploadSubject.innerHTML = '';
-  unique.forEach((subject) => {
+  subjects.forEach((subject) => {
     const option = document.createElement('option');
     option.value = subject;
     option.textContent = subject;
@@ -379,7 +392,7 @@ function buildUploadSubjects() {
   newOption.value = NEW_SUBJECT_VALUE;
   newOption.textContent = 'New subject...';
   uploadSubject.append(newOption);
-  uploadSubject.value = unique[0] || NEW_SUBJECT_VALUE;
+  uploadSubject.value = subjects[0] || NEW_SUBJECT_VALUE;
   if (uploadSubjectRow) {
     uploadSubjectRow.classList.toggle(
       'is-hidden',
@@ -609,9 +622,7 @@ function buildChips() {
     updateUI();
   });
 
-  const subjects = (data?.subjects || [])
-    .map((subject) => subject.subject)
-    .sort((a, b) => a.localeCompare(b));
+  const subjects = getUnifiedSubjectNames();
 
   subjects.forEach((subject) => {
     addChip(subjectChips, subject, subject, () => {
@@ -620,6 +631,10 @@ function buildChips() {
       updateUI();
     });
   });
+
+  if (state.subject !== 'all' && !subjects.includes(state.subject)) {
+    state.subject = 'all';
+  }
 
   const types = ['Theory', 'Revision'];
   addChip(typeChips, 'all', 'All types', () => {
@@ -671,9 +686,37 @@ if (uploadSubmit) {
   uploadSubmit.addEventListener('click', handleUpload);
 }
 
-if (data) {
+function initContent() {
+  if (!data) return;
   updated.textContent = formatDate(data.generatedAt);
   buildChips();
   buildUploadSubjects();
   updateUI();
 }
+
+async function loadTrackSubjectNames() {
+  if (typeof fetch !== 'function') {
+    return [];
+  }
+  try {
+    const response = await fetch(TRACK_SUBJECT_ENDPOINT, { cache: 'no-store' });
+    if (!response.ok) return [];
+    const payload = await response.json();
+    if (!Array.isArray(payload.subjects)) return [];
+    return payload.subjects
+      .map((subject) => String(subject.name || '').trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+initContent();
+loadTrackSubjectNames()
+  .then((names) => {
+    trackSubjectNames = names;
+  })
+  .catch(() => {
+    trackSubjectNames = [];
+  })
+  .finally(initContent);
