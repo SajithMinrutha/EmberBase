@@ -1,11 +1,12 @@
 # EmberBase
 
-EmberBase is a local-first study suite that bundles three offline tools behind a
+EmberBase is a local-first study suite that bundles four offline tools behind a
 single hub:
 
 - EmberTrack (grade tracker + study dashboard)
 - EmberVault (past paper archive)
 - EmberStudy (tute library for theory + revision)
+- EmberStream (tuition video library)
 
 Everything runs locally with a single command and stays on your machine. No
 logins or cloud dependencies.
@@ -48,6 +49,7 @@ The server is a single Node process serving static files plus the local upload e
 - EmberTrack: `http://localhost:5050/embertrack/`
 - EmberVault: `http://localhost:5050/embervault/`
 - EmberStudy: `http://localhost:5050/emberstudy/`
+- EmberStream: `http://localhost:5050/emberstream/`
 
 ### Unified subject names
 
@@ -146,18 +148,49 @@ To disable auto-watch:
 WATCH_TUTES=0 npm start
 ```
 
+## EmberStream (tuition videos)
+
+Location: `LocalVideos/`
+
+Folder structure:
+
+```
+LocalVideos/Videos/
+  Chemistry/
+    Unit 01/
+    Unit 02/
+  Maths/
+    Unit 01/
+    Unit 02/
+```
+
+Add videos to the folders above. The index is generated automatically while the
+server runs. You can also regenerate manually:
+
+```bash
+node LocalVideos/generate-videos.js
+```
+
+To disable auto-watch:
+
+```bash
+WATCH_VIDEOS=0 npm start
+```
+
 ## Run each app individually (optional)
 
 ```bash
 node Gradexa/server.js
 node LocalAL/serve.js
 node LocalTutes/serve.js
+node LocalVideos/serve.js
 ```
 
 Ports:
 - EmberTrack: `8080`
 - EmberVault: `5173`
 - EmberStudy: `5174`
+- EmberStream: `5175`
 
 ## Project scripts
 

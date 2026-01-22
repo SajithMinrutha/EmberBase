@@ -11,6 +11,8 @@ const subjectChips = document.getElementById('subjectChips');
 const typeChips = document.getElementById('typeChips');
 const TRACK_SUBJECT_ENDPOINT = '/api/embertrack';
 let trackSubjectNames = [];
+const SUBJECT_POLL_MS = 10000;
+let trackSubjectsLoaded = false;
 
 const uploadToggle = document.getElementById('uploadToggle');
 const uploadModal = document.getElementById('uploadModal');
@@ -31,7 +33,6 @@ const state = {
   query: '',
 };
 
-const NEW_SUBJECT_VALUE = '__new__';
 
 const THEME_STORAGE = 'emberbase-theme';
 const THEMES = {
@@ -338,26 +339,66 @@ function getLocalSubjectNames() {
   ].filter(Boolean);
 }
 
-function getUnifiedSubjectNames() {
-  const subjects = Array.from(
-    new Set([
-      ...trackSubjectNames.filter(Boolean),
-      ...getLocalSubjectNames(),
-    ])
-  );
+function normalizeSubject(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function formatSubjectName(value) {
+  const cleaned = String(value || '').trim();
+  return normalizeSubject(cleaned) === 'combined maths' ? 'Combined Maths' : cleaned;
+}
+
+function getTrackSubjectNames() {
+  const subjects = Array.from(new Set(trackSubjectNames.filter(Boolean)));
   return subjects.sort((a, b) => a.localeCompare(b));
+}
+
+function getTrackSubjectMap() {
+  const map = new Map();
+  getTrackSubjectNames().forEach((subject) => {
+    map.set(normalizeSubject(subject), subject);
+  });
+  return map;
+}
+
+function setTrackSubjectNames(names) {
+  const next = Array.from(new Set(names.filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b)
+  );
+  const current = getTrackSubjectNames();
+  const changed =
+    next.length !== current.length ||
+    next.some((subject, index) => subject !== current[index]);
+  if (changed) {
+    trackSubjectNames = next;
+    initContent();
+  }
+  trackSubjectsLoaded = true;
+}
+
+function getUnifiedSubjectNames() {
+  const trackSubjects = getTrackSubjectNames();
+  if (trackSubjects.length) return trackSubjects;
+  const subjects = Array.from(new Set(getLocalSubjectNames()));
+  return subjects.sort((a, b) => a.localeCompare(b));
+}
+
+function getDisplaySubject(subjectName) {
+  const normalized = normalizeSubject(subjectName);
+  const map = getTrackSubjectMap();
+  return map.get(normalized) || subjectName;
 }
 
 function flattenSubjects(subjects) {
   return subjects.flatMap((subject) => {
     const theory = (subject.theory || []).map((tute) => ({
       ...tute,
-      subject: subject.subject,
+      subject: getDisplaySubject(subject.subject),
       type: 'Theory',
     }));
     const revision = (subject.revision || []).map((tute) => ({
       ...tute,
-      subject: subject.subject,
+      subject: getDisplaySubject(subject.subject),
       type: 'Revision',
     }));
     return [...theory, ...revision];
@@ -365,7 +406,13 @@ function flattenSubjects(subjects) {
 }
 
 function matchesFilters(tute) {
-  const subjectMatch = state.subject === 'all' || tute.subject === state.subject;
+  const allowedSubjects = getTrackSubjectMap();
+  const normalized = normalizeSubject(tute.subject);
+  const allowedMatch =
+    allowedSubjects.size === 0 || allowedSubjects.has(normalized);
+  const subjectMatch =
+    allowedMatch &&
+    (state.subject === 'all' || normalizeSubject(state.subject) === normalized);
   const typeMatch = state.type === 'all' || tute.type === state.type;
   const query = state.query.trim().toLowerCase();
   if (!query) return subjectMatch && typeMatch;
@@ -381,23 +428,32 @@ function setUploadStatus(message) {
 function buildUploadSubjects() {
   if (!uploadSubject) return;
   const subjects = getUnifiedSubjectNames();
+  const hasSubjects = subjects.length > 0;
   uploadSubject.innerHTML = '';
-  subjects.forEach((subject) => {
-    const option = document.createElement('option');
-    option.value = subject;
-    option.textContent = subject;
-    uploadSubject.append(option);
-  });
-  const newOption = document.createElement('option');
-  newOption.value = NEW_SUBJECT_VALUE;
-  newOption.textContent = 'New subject...';
-  uploadSubject.append(newOption);
-  uploadSubject.value = subjects[0] || NEW_SUBJECT_VALUE;
+  if (!hasSubjects) {
+    const newOption = document.createElement('option');
+    newOption.value = '';
+    newOption.textContent = 'Add subjects in EmberTrack';
+    newOption.disabled = true;
+    uploadSubject.append(newOption);
+    uploadSubject.value = '';
+    if (uploadSubmit) uploadSubmit.disabled = true;
+    if (uploadToggle) uploadToggle.disabled = true;
+    setUploadStatus('Add subjects in EmberTrack to upload tutes.');
+  } else {
+    if (uploadSubmit) uploadSubmit.disabled = false;
+    if (uploadToggle) uploadToggle.disabled = false;
+    setUploadStatus('');
+    subjects.forEach((subject) => {
+      const option = document.createElement('option');
+      option.value = subject;
+      option.textContent = subject;
+      uploadSubject.append(option);
+    });
+    uploadSubject.value = subjects[0];
+  }
   if (uploadSubjectRow) {
-    uploadSubjectRow.classList.toggle(
-      'is-hidden',
-      uploadSubject.value !== NEW_SUBJECT_VALUE
-    );
+    uploadSubjectRow.classList.add('is-hidden');
   }
 }
 
@@ -429,11 +485,7 @@ async function handleUpload() {
     setUploadStatus('Only PDF files are supported.');
     return;
   }
-  const selectedSubject = uploadSubject?.value || '';
-  const subjectValue =
-    selectedSubject === NEW_SUBJECT_VALUE
-      ? uploadSubjectNew?.value.trim()
-      : selectedSubject;
+  const subjectValue = uploadSubject?.value || '';
   if (!subjectValue) {
     setUploadStatus('Add a subject name.');
     return;
@@ -674,11 +726,9 @@ if (uploadBackdrop) {
 
 if (uploadSubject) {
   uploadSubject.addEventListener('change', () => {
-    if (!uploadSubjectRow) return;
-    uploadSubjectRow.classList.toggle(
-      'is-hidden',
-      uploadSubject.value !== NEW_SUBJECT_VALUE
-    );
+    if (uploadSubjectRow) {
+      uploadSubjectRow.classList.add('is-hidden');
+    }
   });
 }
 
@@ -696,27 +746,50 @@ function initContent() {
 
 async function loadTrackSubjectNames() {
   if (typeof fetch !== 'function') {
-    return [];
+    return readTrackSubjectsFromStorage();
   }
   try {
     const response = await fetch(TRACK_SUBJECT_ENDPOINT, { cache: 'no-store' });
-    if (!response.ok) return [];
+    if (!response.ok) return readTrackSubjectsFromStorage();
     const payload = await response.json();
-    if (!Array.isArray(payload.subjects)) return [];
-    return payload.subjects
-      .map((subject) => String(subject.name || '').trim())
+    if (!Array.isArray(payload.subjects)) return readTrackSubjectsFromStorage();
+    const names = payload.subjects
+      .map((subject) => formatSubjectName(subject.name))
+      .filter(Boolean);
+    return names.length ? names : readTrackSubjectsFromStorage();
+  } catch {
+    return readTrackSubjectsFromStorage();
+  }
+}
+
+function readTrackSubjectsFromStorage() {
+  try {
+    const raw = localStorage.getItem('embertrack-data-v1');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.subjects)) return [];
+    return parsed.subjects
+      .map((subject) => formatSubjectName(subject.name))
       .filter(Boolean);
   } catch {
     return [];
   }
 }
 
+function primeTrackSubjectsFromStorage() {
+  const names = readTrackSubjectsFromStorage();
+  if (names.length) {
+    setTrackSubjectNames(names);
+  }
+}
+
 initContent();
-loadTrackSubjectNames()
-  .then((names) => {
-    trackSubjectNames = names;
-  })
-  .catch(() => {
-    trackSubjectNames = [];
-  })
-  .finally(initContent);
+primeTrackSubjectsFromStorage();
+const refreshTrackSubjects = () =>
+  loadTrackSubjectNames()
+    .then((names) => setTrackSubjectNames(names))
+    .catch(() => setTrackSubjectNames([]));
+
+refreshTrackSubjects();
+setInterval(refreshTrackSubjects, SUBJECT_POLL_MS);
+window.addEventListener('focus', refreshTrackSubjects);

@@ -49,7 +49,7 @@ This regenerates `styles.css`.
   `embertrack-data-v1` (auto-migrated from `gradexa-data-v1`).
 - Use the Settings page to export/import data or reset everything.
 - The app opens directly to the dashboard (no landing, no auth).
-- Local storage auto-initializes with default subjects: Combined maths, Physics, Chemistry.
+- Local storage auto-initializes with default subjects: Combined Maths, Physics, Chemistry.
 
 ## Scripts
 - `npm start` - run the local Node server on `http://localhost:8080`

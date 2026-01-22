@@ -12,4 +12,9 @@ pnpm-debug.log*
 LocalAL/papers-data.js
 LocalTutes/tutes-data.js
 **/*.pdf
+LocalAL/PastPapers/
+LocalAL/OtherPapers/
+LocalTutes/Tutes/
+LocalTutes/OtherTutes/
+LocalVideos/Videos/
 data/

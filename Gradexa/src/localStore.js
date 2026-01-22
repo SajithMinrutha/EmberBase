@@ -11,7 +11,7 @@ const defaultData = {
   updated_at: null,
   profile: { name: "Student", birthday: "", dailyTarget: 60 },
   subjects: [
-    { id: "subject-1", name: "Combined maths", created_at: nowIso() },
+    { id: "subject-1", name: "Combined Maths", created_at: nowIso() },
     { id: "subject-2", name: "Physics", created_at: nowIso() },
     { id: "subject-3", name: "Chemistry", created_at: nowIso() },
   ],
@@ -48,6 +48,12 @@ const readStore = () => {
   }
 };
 
+const syncInitialStore = () => {
+  if (!canSync()) return;
+  const data = readStore();
+  scheduleServerSync(data);
+};
+
 const scheduleServerSync = (data) => {
   if (!canSync()) return;
   if (syncTimer) clearTimeout(syncTimer);
@@ -75,6 +81,8 @@ const writeStore = (data, options = {}) => {
     scheduleServerSync(payload);
   }
 };
+
+syncInitialStore();
 
 const normalizeData = (data) => ({
   updated_at: typeof data.updated_at === "string" ? data.updated_at : null,
