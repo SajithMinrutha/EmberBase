@@ -16,6 +16,8 @@
     --accent-warm: #e5e7eb;
     --accent-deep: #9ca3af;
     --accent-sky: #cbd5e1;
+    --chart-actual: #f59e0b;
+    --chart-target: #e5e7eb;
     --accent-soft: rgba(255, 255, 255, 0.12);
     --accent-border: rgba(255, 255, 255, 0.18);
     --accent-shadow: rgba(248, 250, 252, 0.2);
@@ -261,11 +263,11 @@
   }
 
   .chart-line--warm {
-    stroke: var(--accent-warm);
+    stroke: var(--chart-actual);
   }
 
   .chart-line--cool {
-    stroke: var(--accent-strong);
+    stroke: var(--chart-target);
   }
 
   .chart-line--sky {
@@ -283,11 +285,11 @@
   }
 
   .chart-dot--warm {
-    fill: var(--accent-warm);
+    fill: var(--chart-actual);
   }
 
   .chart-dot--cool {
-    fill: var(--accent-strong);
+    fill: var(--chart-target);
   }
 
   .chart-dot--sky {
@@ -316,11 +318,11 @@
   }
 
   .legend-dot--warm {
-    background: var(--accent-warm);
+    background: var(--chart-actual);
   }
 
   .legend-dot--cool {
-    background: var(--accent-strong);
+    background: var(--chart-target);
   }
 
   .chart-axis {

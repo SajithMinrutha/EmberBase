@@ -179,6 +179,20 @@ export const addStudySession = (session) => {
   return row;
 };
 
+export const updateStudySession = (id, updates) => {
+  const data = readStore();
+  data.studySessions = data.studySessions.map((s) =>
+    s.id === id ? { ...s, ...updates } : s
+  );
+  writeStore(data);
+};
+
+export const deleteStudySession = (id) => {
+  const data = readStore();
+  data.studySessions = data.studySessions.filter((s) => s.id !== id);
+  writeStore(data);
+};
+
 export const getNotes = () => readStore().notes || "";
 
 export const saveNotes = (notes) => {

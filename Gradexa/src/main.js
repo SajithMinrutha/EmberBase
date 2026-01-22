@@ -4,6 +4,7 @@ import {
   addSubject,
   addTodo,
   deleteMark,
+  deleteStudySession,
   deleteTodo,
   exportData,
   getMarks,
@@ -22,6 +23,7 @@ import {
   resetStore,
   saveProfile,
   updateMark,
+  updateStudySession,
   updateTodo,
   syncFromServer,
 } from "./localStore.js";
@@ -29,6 +31,7 @@ import {
 const state = {
   activeView: window.location.hash.replace("#", "") || "dashboard",
   editingMarkId: null,
+  editingSessionId: null,
   todoFilter: "all",
   timerSeconds: 1500,
   timerInterval: null,
@@ -50,6 +53,8 @@ const THEMES = {
       "--accent-warm": "#e5e7eb",
       "--accent-deep": "#9ca3af",
       "--accent-sky": "#cbd5e1",
+      "--chart-actual": "#f59e0b",
+      "--chart-target": "#e5e7eb",
       "--accent-soft": "rgba(255, 255, 255, 0.12)",
       "--accent-border": "rgba(255, 255, 255, 0.18)",
       "--accent-shadow": "rgba(248, 250, 252, 0.2)",
@@ -75,6 +80,8 @@ const THEMES = {
       "--accent-warm": "#22d3ee",
       "--accent-deep": "#5b21b6",
       "--accent-sky": "#60a5fa",
+      "--chart-actual": "#22d3ee",
+      "--chart-target": "#a78bfa",
       "--accent-soft": "rgba(139, 92, 246, 0.22)",
       "--accent-border": "rgba(139, 92, 246, 0.32)",
       "--accent-shadow": "rgba(139, 92, 246, 0.32)",
@@ -100,6 +107,8 @@ const THEMES = {
       "--accent-warm": "#f472b6",
       "--accent-deep": "#1d4ed8",
       "--accent-sky": "#a78bfa",
+      "--chart-actual": "#f472b6",
+      "--chart-target": "#60a5fa",
       "--accent-soft": "rgba(56, 189, 248, 0.22)",
       "--accent-border": "rgba(56, 189, 248, 0.32)",
       "--accent-shadow": "rgba(56, 189, 248, 0.32)",
@@ -125,6 +134,8 @@ const THEMES = {
       "--accent-warm": "#34d399",
       "--accent-deep": "#0f766e",
       "--accent-sky": "#5eead4",
+      "--chart-actual": "#34d399",
+      "--chart-target": "#0ea5e9",
       "--accent-soft": "rgba(34, 211, 238, 0.22)",
       "--accent-border": "rgba(34, 211, 238, 0.32)",
       "--accent-shadow": "rgba(34, 211, 238, 0.32)",
@@ -150,6 +161,8 @@ const THEMES = {
       "--accent-warm": "#a855f7",
       "--accent-deep": "#6d28d9",
       "--accent-sky": "#c084fc",
+      "--chart-actual": "#a855f7",
+      "--chart-target": "#22d3ee",
       "--accent-soft": "rgba(94, 234, 212, 0.22)",
       "--accent-border": "rgba(94, 234, 212, 0.32)",
       "--accent-shadow": "rgba(94, 234, 212, 0.32)",
@@ -175,6 +188,8 @@ const THEMES = {
       "--accent-warm": "#a3e635",
       "--accent-deep": "#047857",
       "--accent-sky": "#86efac",
+      "--chart-actual": "#a3e635",
+      "--chart-target": "#22c55e",
       "--accent-soft": "rgba(52, 211, 153, 0.22)",
       "--accent-border": "rgba(52, 211, 153, 0.32)",
       "--accent-shadow": "rgba(52, 211, 153, 0.32)",
@@ -200,6 +215,8 @@ const THEMES = {
       "--accent-warm": "#f97316",
       "--accent-deep": "#b45309",
       "--accent-sky": "#fdba74",
+      "--chart-actual": "#f97316",
+      "--chart-target": "#f59e0b",
       "--accent-soft": "rgba(251, 191, 36, 0.22)",
       "--accent-border": "rgba(251, 191, 36, 0.32)",
       "--accent-shadow": "rgba(251, 191, 36, 0.32)",
@@ -225,6 +242,8 @@ const THEMES = {
       "--accent-warm": "#fb923c",
       "--accent-deep": "#be185d",
       "--accent-sky": "#fde68a",
+      "--chart-actual": "#fb923c",
+      "--chart-target": "#fb7185",
       "--accent-soft": "rgba(244, 114, 182, 0.22)",
       "--accent-border": "rgba(244, 114, 182, 0.32)",
       "--accent-shadow": "rgba(244, 114, 182, 0.32)",
@@ -250,6 +269,8 @@ const THEMES = {
       "--accent-warm": "#f97316",
       "--accent-deep": "#be123c",
       "--accent-sky": "#fdba74",
+      "--chart-actual": "#f97316",
+      "--chart-target": "#fb7185",
       "--accent-soft": "rgba(244, 63, 94, 0.22)",
       "--accent-border": "rgba(244, 63, 94, 0.32)",
       "--accent-shadow": "rgba(244, 63, 94, 0.32)",
@@ -275,6 +296,8 @@ const THEMES = {
       "--accent-warm": "#38bdf8",
       "--accent-deep": "#4d7c0f",
       "--accent-sky": "#34d399",
+      "--chart-actual": "#38bdf8",
+      "--chart-target": "#d9f99d",
       "--accent-soft": "rgba(163, 230, 53, 0.22)",
       "--accent-border": "rgba(163, 230, 53, 0.32)",
       "--accent-shadow": "rgba(163, 230, 53, 0.32)",
@@ -352,10 +375,10 @@ const escapeHtml = (value) =>
     return map[char] || char;
   });
 
-const buildLinePoints = (values, width, height, padding) => {
+const buildLinePoints = (values, width, height, padding, scale = null) => {
   if (!values.length) return [];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const min = scale?.min ?? Math.min(...values);
+  const max = scale?.max ?? Math.max(...values);
   const range = max - min || 1;
   const step = values.length > 1 ? (width - padding * 2) / (values.length - 1) : 0;
   return values.map((value, index) => {
@@ -373,7 +396,7 @@ const buildLinePath = (points) =>
     ""
   );
 
-const buildLineSvg = ({ lines, width, height, padding }) => {
+const buildLineSvg = ({ lines, width, height, padding, scale = null }) => {
   const gridY = [0.33, 0.66].map(
     (ratio) => roundPoint(padding + (height - padding * 2) * ratio)
   );
@@ -389,7 +412,7 @@ const buildLineSvg = ({ lines, width, height, padding }) => {
   const linePaths = lines
     .map((line) => {
       if (!line.values.length) return "";
-      const points = buildLinePoints(line.values, width, height, padding);
+      const points = buildLinePoints(line.values, width, height, padding, scale);
       if (!points.length) return "";
       const path = buildLinePath(points);
       const dots = points
@@ -846,7 +869,7 @@ const renderPlanner = () => {
   const table = qs("sessionTable");
   table.innerHTML = "";
   if (!sessions.length) {
-    table.innerHTML = `<tr><td class="p-2 text-muted" colspan="4">No sessions yet.</td></tr>`;
+    table.innerHTML = `<tr><td class="p-2 text-muted" colspan="5">No sessions yet.</td></tr>`;
   } else {
     sessions
       .slice()
@@ -859,6 +882,16 @@ const renderPlanner = () => {
             <td class="p-2">${s.subject}</td>
             <td class="p-2">${s.target_minutes} min</td>
             <td class="p-2">${s.actual_minutes} min</td>
+            <td class="p-2">
+              <div class="flex flex-wrap gap-2">
+                <button class="btn-secondary rounded px-2 py-1 text-xs" data-edit-session="${
+                  s.id
+                }">Edit</button>
+                <button class="btn-ghost rounded px-2 py-1 text-xs text-red-600" data-delete-session="${
+                  s.id
+                }">Delete</button>
+              </div>
+            </td>
           </tr>`
         );
       });
@@ -946,6 +979,12 @@ const renderPlannerChart = () => {
     (label, index) => `${label} · ${targetSeries[index]} min target`
   );
 
+  const combined = [...actualSeries, ...targetSeries];
+  const scale = {
+    min: Math.min(...combined),
+    max: Math.max(...combined),
+  };
+
   chart.innerHTML = buildLineSvg({
     lines: [
       {
@@ -964,6 +1003,7 @@ const renderPlannerChart = () => {
     width: 360,
     height: 140,
     padding: 10,
+    scale,
   });
 
   axis.innerHTML = labels.map((label) => `<span>${label}</span>`).join("");
@@ -1535,15 +1575,55 @@ qs("sessionForm").addEventListener("submit", (event) => {
   const actual = Number(qs("sessionActual").value || 0);
   const date = qs("sessionDate").value || todayIso();
   if (!subject) return;
-  addStudySession({
-    subject,
-    target_minutes: target,
-    actual_minutes: actual,
-    session_date: date,
-  });
-  qs("sessionTarget").value = "";
-  qs("sessionActual").value = "";
-  qs("sessionDate").value = "";
+  if (state.editingSessionId) {
+    updateStudySession(state.editingSessionId, {
+      subject,
+      target_minutes: target,
+      actual_minutes: actual,
+      session_date: date,
+    });
+  } else {
+    addStudySession({
+      subject,
+      target_minutes: target,
+      actual_minutes: actual,
+      session_date: date,
+    });
+  }
+  resetSessionForm();
+});
+
+const resetSessionForm = () => {
+  state.editingSessionId = null;
+  const submit = qs("sessionSubmit");
+  if (submit) submit.textContent = "Add Session";
+  qs("sessionForm").reset();
+  qs("sessionDate").value = todayIso();
+};
+
+qs("sessionCancel").addEventListener("click", () => {
+  resetSessionForm();
+});
+
+qs("sessionTable").addEventListener("click", (event) => {
+  const editId = event.target.dataset.editSession;
+  const deleteId = event.target.dataset.deleteSession;
+  if (editId) {
+    const session = getStudySessions().find((s) => s.id === editId);
+    if (!session) return;
+    state.editingSessionId = editId;
+    qs("sessionSubject").value = session.subject;
+    qs("sessionTarget").value = session.target_minutes ?? "";
+    qs("sessionActual").value = session.actual_minutes ?? "";
+    qs("sessionDate").value = session.session_date || todayIso();
+    qs("sessionSubmit").textContent = "Save Session";
+  }
+  if (deleteId) {
+    if (deleteId === state.editingSessionId) {
+      resetSessionForm();
+    }
+    deleteStudySession(deleteId);
+  }
 });
 
 qs("saveProfile").addEventListener("click", () => {
