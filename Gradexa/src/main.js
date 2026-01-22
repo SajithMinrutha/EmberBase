@@ -34,6 +34,286 @@ const state = {
   timerInterval: null,
 };
 
+const THEME_STORAGE = "emberbase-theme";
+const THEMES = {
+  mono: {
+    label: "Mono",
+    vars: {
+      "--bg-1": "#050505",
+      "--bg-2": "#0b0b0b",
+      "--bg-3": "#141414",
+      "--surface": "rgba(12, 12, 12, 0.88)",
+      "--surface-strong": "rgba(12, 12, 12, 0.96)",
+      "--line": "rgba(255, 255, 255, 0.12)",
+      "--accent": "#f8fafc",
+      "--accent-strong": "#e5e7eb",
+      "--accent-warm": "#e5e7eb",
+      "--accent-deep": "#9ca3af",
+      "--accent-sky": "#cbd5e1",
+      "--accent-soft": "rgba(255, 255, 255, 0.12)",
+      "--accent-border": "rgba(255, 255, 255, 0.18)",
+      "--accent-shadow": "rgba(248, 250, 252, 0.2)",
+      "--glow-1": "rgba(255, 255, 255, 0.12)",
+      "--glow-2": "rgba(255, 255, 255, 0.08)",
+      "--glow-3": "rgba(255, 255, 255, 0.06)",
+      "--text-strong": "#f8fafc",
+      "--text-muted": "#b3b3b3",
+      "--shadow": "0 24px 60px rgba(0, 0, 0, 0.7)",
+    },
+  },
+  slate: {
+    label: "Slate",
+    vars: {
+      "--bg-1": "#060811",
+      "--bg-2": "#0b1020",
+      "--bg-3": "#12172b",
+      "--surface": "rgba(13, 18, 33, 0.88)",
+      "--surface-strong": "rgba(13, 18, 33, 0.96)",
+      "--line": "rgba(139, 92, 246, 0.18)",
+      "--accent": "#8b5cf6",
+      "--accent-strong": "#a78bfa",
+      "--accent-warm": "#22d3ee",
+      "--accent-deep": "#5b21b6",
+      "--accent-sky": "#60a5fa",
+      "--accent-soft": "rgba(139, 92, 246, 0.22)",
+      "--accent-border": "rgba(139, 92, 246, 0.32)",
+      "--accent-shadow": "rgba(139, 92, 246, 0.32)",
+      "--glow-1": "rgba(139, 92, 246, 0.28)",
+      "--glow-2": "rgba(34, 211, 238, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#f8fafc",
+      "--text-muted": "#c7d2fe",
+      "--shadow": "0 24px 60px rgba(6, 8, 24, 0.65)",
+    },
+  },
+  cobalt: {
+    label: "Cobalt",
+    vars: {
+      "--bg-1": "#050b16",
+      "--bg-2": "#0a1430",
+      "--bg-3": "#111c3b",
+      "--surface": "rgba(10, 18, 34, 0.88)",
+      "--surface-strong": "rgba(10, 18, 34, 0.96)",
+      "--line": "rgba(56, 189, 248, 0.18)",
+      "--accent": "#38bdf8",
+      "--accent-strong": "#60a5fa",
+      "--accent-warm": "#f472b6",
+      "--accent-deep": "#1d4ed8",
+      "--accent-sky": "#a78bfa",
+      "--accent-soft": "rgba(56, 189, 248, 0.22)",
+      "--accent-border": "rgba(56, 189, 248, 0.32)",
+      "--accent-shadow": "rgba(56, 189, 248, 0.32)",
+      "--glow-1": "rgba(56, 189, 248, 0.28)",
+      "--glow-2": "rgba(244, 114, 182, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#f8fafc",
+      "--text-muted": "#c7d2fe",
+      "--shadow": "0 24px 60px rgba(4, 8, 22, 0.65)",
+    },
+  },
+  ocean: {
+    label: "Ocean",
+    vars: {
+      "--bg-1": "#031316",
+      "--bg-2": "#062026",
+      "--bg-3": "#0b2b33",
+      "--surface": "rgba(7, 26, 32, 0.88)",
+      "--surface-strong": "rgba(7, 26, 32, 0.96)",
+      "--line": "rgba(34, 211, 238, 0.18)",
+      "--accent": "#22d3ee",
+      "--accent-strong": "#0ea5e9",
+      "--accent-warm": "#34d399",
+      "--accent-deep": "#0f766e",
+      "--accent-sky": "#5eead4",
+      "--accent-soft": "rgba(34, 211, 238, 0.22)",
+      "--accent-border": "rgba(34, 211, 238, 0.32)",
+      "--accent-shadow": "rgba(34, 211, 238, 0.32)",
+      "--glow-1": "rgba(34, 211, 238, 0.28)",
+      "--glow-2": "rgba(52, 211, 153, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#f8fafc",
+      "--text-muted": "#b5f2e6",
+      "--shadow": "0 24px 60px rgba(2, 8, 18, 0.62)",
+    },
+  },
+  aurora: {
+    label: "Aurora",
+    vars: {
+      "--bg-1": "#061118",
+      "--bg-2": "#0a1b24",
+      "--bg-3": "#112534",
+      "--surface": "rgba(9, 26, 34, 0.88)",
+      "--surface-strong": "rgba(9, 26, 34, 0.96)",
+      "--line": "rgba(94, 234, 212, 0.18)",
+      "--accent": "#5eead4",
+      "--accent-strong": "#22d3ee",
+      "--accent-warm": "#a855f7",
+      "--accent-deep": "#6d28d9",
+      "--accent-sky": "#c084fc",
+      "--accent-soft": "rgba(94, 234, 212, 0.22)",
+      "--accent-border": "rgba(94, 234, 212, 0.32)",
+      "--accent-shadow": "rgba(94, 234, 212, 0.32)",
+      "--glow-1": "rgba(94, 234, 212, 0.28)",
+      "--glow-2": "rgba(168, 85, 247, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#f8fafc",
+      "--text-muted": "#c7f9f1",
+      "--shadow": "0 24px 60px rgba(3, 9, 18, 0.62)",
+    },
+  },
+  moss: {
+    label: "Moss",
+    vars: {
+      "--bg-1": "#06110c",
+      "--bg-2": "#0a1b14",
+      "--bg-3": "#12251c",
+      "--surface": "rgba(10, 25, 19, 0.88)",
+      "--surface-strong": "rgba(10, 25, 19, 0.96)",
+      "--line": "rgba(52, 211, 153, 0.18)",
+      "--accent": "#34d399",
+      "--accent-strong": "#22c55e",
+      "--accent-warm": "#a3e635",
+      "--accent-deep": "#047857",
+      "--accent-sky": "#86efac",
+      "--accent-soft": "rgba(52, 211, 153, 0.22)",
+      "--accent-border": "rgba(52, 211, 153, 0.32)",
+      "--accent-shadow": "rgba(52, 211, 153, 0.32)",
+      "--glow-1": "rgba(52, 211, 153, 0.28)",
+      "--glow-2": "rgba(163, 230, 53, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#f8fafc",
+      "--text-muted": "#c5f2da",
+      "--shadow": "0 24px 60px rgba(4, 10, 18, 0.62)",
+    },
+  },
+  dune: {
+    label: "Dune",
+    vars: {
+      "--bg-1": "#140e08",
+      "--bg-2": "#1b130b",
+      "--bg-3": "#241a10",
+      "--surface": "rgba(20, 16, 10, 0.88)",
+      "--surface-strong": "rgba(20, 16, 10, 0.96)",
+      "--line": "rgba(251, 191, 36, 0.18)",
+      "--accent": "#fbbf24",
+      "--accent-strong": "#f59e0b",
+      "--accent-warm": "#f97316",
+      "--accent-deep": "#b45309",
+      "--accent-sky": "#fdba74",
+      "--accent-soft": "rgba(251, 191, 36, 0.22)",
+      "--accent-border": "rgba(251, 191, 36, 0.32)",
+      "--accent-shadow": "rgba(251, 191, 36, 0.32)",
+      "--glow-1": "rgba(251, 191, 36, 0.28)",
+      "--glow-2": "rgba(249, 115, 22, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#fff7ed",
+      "--text-muted": "#f3d6a5",
+      "--shadow": "0 24px 60px rgba(12, 7, 4, 0.6)",
+    },
+  },
+  sunrise: {
+    label: "Sunrise",
+    vars: {
+      "--bg-1": "#150a10",
+      "--bg-2": "#1d1017",
+      "--bg-3": "#271421",
+      "--surface": "rgba(22, 14, 20, 0.88)",
+      "--surface-strong": "rgba(22, 14, 20, 0.96)",
+      "--line": "rgba(244, 114, 182, 0.18)",
+      "--accent": "#f472b6",
+      "--accent-strong": "#fb7185",
+      "--accent-warm": "#fb923c",
+      "--accent-deep": "#be185d",
+      "--accent-sky": "#fde68a",
+      "--accent-soft": "rgba(244, 114, 182, 0.22)",
+      "--accent-border": "rgba(244, 114, 182, 0.32)",
+      "--accent-shadow": "rgba(244, 114, 182, 0.32)",
+      "--glow-1": "rgba(244, 114, 182, 0.28)",
+      "--glow-2": "rgba(251, 146, 60, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#fff1f2",
+      "--text-muted": "#fbcfe8",
+      "--shadow": "0 24px 60px rgba(12, 6, 10, 0.6)",
+    },
+  },
+  ember: {
+    label: "Ember",
+    vars: {
+      "--bg-1": "#16090b",
+      "--bg-2": "#1f0d11",
+      "--bg-3": "#291119",
+      "--surface": "rgba(22, 10, 16, 0.88)",
+      "--surface-strong": "rgba(22, 10, 16, 0.96)",
+      "--line": "rgba(244, 63, 94, 0.18)",
+      "--accent": "#f43f5e",
+      "--accent-strong": "#fb7185",
+      "--accent-warm": "#f97316",
+      "--accent-deep": "#be123c",
+      "--accent-sky": "#fdba74",
+      "--accent-soft": "rgba(244, 63, 94, 0.22)",
+      "--accent-border": "rgba(244, 63, 94, 0.32)",
+      "--accent-shadow": "rgba(244, 63, 94, 0.32)",
+      "--glow-1": "rgba(244, 63, 94, 0.28)",
+      "--glow-2": "rgba(249, 115, 22, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#fff1f2",
+      "--text-muted": "#fecaca",
+      "--shadow": "0 24px 60px rgba(12, 5, 8, 0.6)",
+    },
+  },
+  noir: {
+    label: "Noir",
+    vars: {
+      "--bg-1": "#050505",
+      "--bg-2": "#0a0a0f",
+      "--bg-3": "#121216",
+      "--surface": "rgba(10, 10, 14, 0.88)",
+      "--surface-strong": "rgba(10, 10, 14, 0.96)",
+      "--line": "rgba(163, 230, 53, 0.18)",
+      "--accent": "#a3e635",
+      "--accent-strong": "#d9f99d",
+      "--accent-warm": "#38bdf8",
+      "--accent-deep": "#4d7c0f",
+      "--accent-sky": "#34d399",
+      "--accent-soft": "rgba(163, 230, 53, 0.22)",
+      "--accent-border": "rgba(163, 230, 53, 0.32)",
+      "--accent-shadow": "rgba(163, 230, 53, 0.32)",
+      "--glow-1": "rgba(163, 230, 53, 0.28)",
+      "--glow-2": "rgba(56, 189, 248, 0.22)",
+      "--glow-3": "rgba(255, 255, 255, 0.05)",
+      "--text-strong": "#f8fafc",
+      "--text-muted": "#d9f99d",
+      "--shadow": "0 24px 60px rgba(0, 0, 0, 0.72)",
+    },
+  },
+};
+
+const applyTheme = (name) => {
+  const theme = THEMES[name] || THEMES.mono;
+  Object.entries(theme.vars).forEach(([key, value]) => {
+    document.documentElement.style.setProperty(key, value);
+  });
+  document.documentElement.dataset.theme = name;
+  try {
+    localStorage.setItem(THEME_STORAGE, name);
+  } catch {}
+};
+
+const initThemeSwitch = () => {
+  const select = qs("themeSelect");
+  let stored = "";
+  try {
+    stored = localStorage.getItem(THEME_STORAGE) || "";
+  } catch {}
+  const initial = THEMES[stored] ? stored : "mono";
+  applyTheme(initial);
+  if (!select) return;
+  select.value = initial;
+  select.addEventListener("change", (event) => {
+    applyTheme(event.target.value);
+  });
+};
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (iso) =>
   new Date(iso).toLocaleDateString(undefined, {
@@ -804,16 +1084,16 @@ const buildReportHtml = (rangeKey = "1y") => {
             tooltips: actualTooltips,
             className: "report-line report-line--warm",
             dotClass: "report-dot report-dot--warm",
-            stroke: "#f1a25a",
-            dotFill: "#f1a25a",
+            stroke: "var(--accent-warm)",
+            dotFill: "var(--accent-warm)",
           },
           {
             values: targetSeries,
             tooltips: targetTooltips,
             className: "report-line report-line--cool",
             dotClass: "report-dot report-dot--cool",
-            stroke: "#2f9f95",
-            dotFill: "#2f9f95",
+            stroke: "var(--accent-cool)",
+            dotFill: "var(--accent-cool)",
           },
         ],
         width: 640,
@@ -823,6 +1103,31 @@ const buildReportHtml = (rangeKey = "1y") => {
     : `<p class="report-muted">No sessions logged yet.</p>`;
 
   const generatedAt = new Date().toLocaleString();
+  let themeName = "mono";
+  try {
+    const storedTheme = localStorage.getItem(THEME_STORAGE);
+    if (storedTheme && THEMES[storedTheme]) {
+      themeName = storedTheme;
+    }
+  } catch {}
+  const reportTheme = THEMES[themeName] || THEMES.mono;
+  const reportVars = {
+    "--bg": reportTheme.vars["--bg-1"],
+    "--panel": reportTheme.vars["--surface-strong"],
+    "--line": reportTheme.vars["--line"],
+    "--accent": reportTheme.vars["--accent"],
+    "--accent-warm": reportTheme.vars["--accent-warm"],
+    "--accent-cool": reportTheme.vars["--accent-strong"],
+    "--text": reportTheme.vars["--text-strong"],
+    "--muted": reportTheme.vars["--text-muted"],
+    "--shadow": reportTheme.vars["--shadow"],
+    "--glow-1": reportTheme.vars["--glow-1"],
+    "--glow-2": reportTheme.vars["--glow-2"],
+    "--glow-3": reportTheme.vars["--glow-3"],
+  };
+  const reportVarsCss = Object.entries(reportVars)
+    .map(([key, value]) => `${key}: ${value};`)
+    .join(" ");
 
   const marksRows = marks
     .slice()
@@ -852,27 +1157,18 @@ const buildReportHtml = (rangeKey = "1y") => {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap"
         />
         <style>
-          :root {
-            --bg: #0f1419;
-            --panel: rgba(20, 28, 36, 0.9);
-            --line: rgba(198, 212, 228, 0.18);
-            --accent: #42b8ad;
-            --accent-warm: #f1a25a;
-            --accent-cool: #2f9f95;
-            --text: #f8fafc;
-            --muted: #9aa7b8;
-            --shadow: 0 30px 60px rgba(2, 6, 20, 0.55);
-          }
+          :root { ${reportVarsCss} }
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            font-family: "Space Grotesk", sans-serif;
+            font-family: "Manrope", sans-serif;
             color: var(--text);
-            background: radial-gradient(circle at 12% 18%, rgba(66, 184, 173, 0.22), transparent 55%),
-              radial-gradient(circle at 82% 12%, rgba(241, 162, 90, 0.22), transparent 55%),
-              linear-gradient(180deg, #141b22, #0f1419);
+            background: radial-gradient(circle at 12% 18%, var(--glow-1), transparent 55%),
+              radial-gradient(circle at 88% 12%, var(--glow-2), transparent 55%),
+              radial-gradient(circle at 40% 90%, var(--glow-3), transparent 60%),
+              linear-gradient(180deg, var(--bg), #050505);
             min-height: 100vh;
             padding: 32px;
           }
@@ -880,7 +1176,7 @@ const buildReportHtml = (rangeKey = "1y") => {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          h1, h2 { font-family: "Fraunces", serif; letter-spacing: -0.02em; }
+          h1, h2 { font-family: "Unbounded", serif; letter-spacing: -0.02em; }
           .report { max-width: 980px; margin: 0 auto; display: grid; gap: 24px; }
           .report-header {
             display: flex;
@@ -1420,6 +1716,7 @@ qs("quickNotes").addEventListener("input", (event) => {
 });
 
 window.addEventListener("embertrack-storage", renderAll);
+initThemeSwitch();
 syncFromServer();
 window.addEventListener("focus", () => {
   syncFromServer();

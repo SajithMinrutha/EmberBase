@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -54,13 +54,28 @@
                 Offline study dashboard for marks, sessions, and tasks.
               </p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
               <a
                 class="btn-secondary rounded-full px-4 py-2 text-sm"
                 href="/"
               >
                 Back to EmberBase
               </a>
+              <div class="theme-switch">
+                <label class="theme-label" for="themeSelect">Theme</label>
+                <select id="themeSelect" class="theme-select">
+                  <option value="mono">Mono</option>
+                  <option value="slate">Slate</option>
+                  <option value="cobalt">Cobalt</option>
+                  <option value="ocean">Ocean</option>
+                  <option value="aurora">Aurora</option>
+                  <option value="moss">Moss</option>
+                  <option value="dune">Dune</option>
+                  <option value="sunrise">Sunrise</option>
+                  <option value="ember">Ember</option>
+                  <option value="noir">Noir</option>
+                </select>
+              </div>
               <div class="accent-chip rounded-full px-4 py-2 text-xs font-semibold">
                 <span id="todayLabel">Today</span>
               </div>
@@ -233,6 +248,7 @@
                 <p class="text-xs text-muted mt-2" id="notesStatus"></p>
               </div>
             </div>
+
           </section>
 
           <section id="view-marks" class="view mt-6 space-y-6 hidden">

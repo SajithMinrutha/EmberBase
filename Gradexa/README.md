@@ -20,7 +20,7 @@ local storage.
 - HTML + JavaScript + Tailwind (compiled to a static CSS file)
 - No framework, no bundler
 - Node static server for local use
-- Typography: Space Grotesk + Fraunces
+- Typography: Manrope + Unbounded
 
 ## Local Setup (Offline)
 

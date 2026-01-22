@@ -18,6 +18,11 @@ npm start
 
 Open `http://localhost:5050`.
 
+## Upload papers and tutes
+
+EmberVault and EmberStudy include a floating **+** button that opens an upload modal.
+Uploads are saved to the local library folders and indexed automatically.
+
 ## Local network access (phone/tablet)
 
 1) Start the server: `npm start`
@@ -28,6 +33,14 @@ Open `http://localhost:5050`.
 3) Open on your phone: `http://<YOUR_IP>:5050`
 
 Make sure both devices are on the same Wi-Fi and your firewall allows Node.
+
+## Deployment (self-hosted)
+
+1) Ensure Node.js 18+ is available.
+2) Set environment variables as needed (`PORT`).
+3) Run `npm start`.
+
+The server is a single Node process serving static files plus the local upload endpoints.
 
 ## Apps and routes
 

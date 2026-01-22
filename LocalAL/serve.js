@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { writePapersData, startWatch } = require('./generate-papers');
+const { createUploadHandler } = require('../upload-service');
 
 const ROOT = __dirname;
 const PORT = process.env.PORT || 5173;
@@ -18,6 +19,11 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
 };
 
+const uploadHandler = createUploadHandler({
+  rootDir: path.resolve(__dirname, '..'),
+  onVaultUpdate: writePapersData,
+});
+
 function safePath(urlPath) {
   const decoded = decodeURIComponent(urlPath.split('?')[0]);
   const normalized = path.normalize(decoded).replace(/^([/\\])+/, '');
@@ -25,6 +31,10 @@ function safePath(urlPath) {
 }
 
 const server = http.createServer((req, res) => {
+  if ((req.url || '').startsWith('/api/upload')) {
+    uploadHandler(req, res);
+    return;
+  }
   const requestPath = req.url === '/' ? '/index.html' : req.url;
   const filePath = safePath(requestPath);
 

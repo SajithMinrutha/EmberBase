@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -17,6 +17,21 @@
     <div class="page">
       <div class="topbar">
         <a class="hub-link" href="/">← Back to EmberBase</a>
+        <div class="theme-switch">
+          <label class="theme-label" for="themeSelect">Theme</label>
+          <select id="themeSelect" class="theme-select">
+            <option value="mono">Mono</option>
+            <option value="slate">Slate</option>
+            <option value="cobalt">Cobalt</option>
+            <option value="ocean">Ocean</option>
+            <option value="aurora">Aurora</option>
+            <option value="moss">Moss</option>
+            <option value="dune">Dune</option>
+            <option value="sunrise">Sunrise</option>
+            <option value="ember">Ember</option>
+            <option value="noir">Noir</option>
+          </select>
+        </div>
       </div>
       <header class="hero">
         <div class="hero__content">
@@ -73,6 +88,61 @@
           </section>
         </section>
       </main>
+
+      <div class="floating-tools">
+        <button class="fab fab--upload" id="uploadToggle" type="button" aria-label="Upload tutes">
+          +
+        </button>
+      </div>
+
+      <div class="modal" id="uploadModal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="upload"></div>
+        <div class="modal__panel">
+          <div class="modal__head">
+            <h2>Upload tutes</h2>
+            <button class="modal__close" type="button" id="uploadClose" aria-label="Close upload">
+              ×
+            </button>
+          </div>
+          <div class="modal__body">
+            <div class="upload-field">
+              <label class="field-label" for="uploadFile">PDF file</label>
+              <input id="uploadFile" class="upload-input" type="file" accept=".pdf" />
+            </div>
+            <div class="upload-field">
+              <label class="field-label" for="uploadSubject">Subject</label>
+              <select id="uploadSubject" class="upload-select"></select>
+            </div>
+            <div class="upload-field is-hidden" id="uploadSubjectRow">
+              <label class="field-label" for="uploadSubjectNew">New subject</label>
+              <input
+                id="uploadSubjectNew"
+                class="upload-input"
+                type="text"
+                placeholder="e.g. Biology"
+              />
+            </div>
+            <div class="upload-field">
+              <label class="field-label" for="uploadType">Type</label>
+              <select id="uploadType" class="upload-select">
+                <option value="Theory">Theory</option>
+                <option value="Revision">Revision</option>
+              </select>
+            </div>
+            <div class="upload-field">
+              <label class="field-label" for="uploadLibrary">Library</label>
+              <select id="uploadLibrary" class="upload-select">
+                <option value="main">Tutes</option>
+                <option value="other">Other Tutes</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal__footer">
+            <button class="btn-primary" type="button" id="uploadSubmit">Upload PDF</button>
+            <span class="status-text" id="uploadStatus"></span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="tutes-data.js"></script>

@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { writePapersData, startWatch: startPapersWatch } = require('./LocalAL/generate-papers');
 const { writeTutesData, startWatch: startTutesWatch } = require('./LocalTutes/generate-tutes');
+const { createUploadHandler } = require('./upload-service');
 
 const ROOT = __dirname;
 const PORT = process.env.PORT || 5050;
@@ -12,6 +13,7 @@ const DATA_DIR = path.join(ROOT, 'data');
 const TRACK_DATA_FILE = path.join(DATA_DIR, 'embertrack.json');
 const API_PREFIX = '/api/embertrack';
 const API_RENAME = '/api/rename';
+const API_UPLOAD = '/api/upload';
 const VAULT_ROOT = path.join(ROOT, 'LocalAL');
 const STUDY_ROOT = path.join(ROOT, 'LocalTutes');
 const VAULT_ALLOWED = [
@@ -28,6 +30,14 @@ const ROUTES = [
   { prefix: '/embervault', dir: path.join(ROOT, 'LocalAL') },
   { prefix: '/emberstudy', dir: path.join(ROOT, 'LocalTutes') },
 ];
+
+const uploadHandler = createUploadHandler({
+  rootDir: ROOT,
+  onVaultUpdate: writePapersData,
+  onStudyUpdate: writeTutesData,
+});
+
+
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -221,6 +231,10 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ error: 'method-not-allowed' }));
+    return;
+  }
+  if (urlPath.startsWith(API_UPLOAD)) {
+    uploadHandler(req, res);
     return;
   }
   const route = resolveRoute(urlPath);
